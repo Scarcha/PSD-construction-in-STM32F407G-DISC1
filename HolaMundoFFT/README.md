@@ -1,2 +1,2 @@
-# DSP
-Desarrollo de espectrogramas en tiempo real en STM32
+# HolaMundoFFT
+Firmware de prueba de integración de CMSIS-DSP y funcionalidad de FFT en STM32CubeIDE
