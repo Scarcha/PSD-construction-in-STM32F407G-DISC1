@@ -79,7 +79,7 @@ enum ERROR{
 /* USER CODE BEGIN PV */
 uint16_t PlayBuffer[DMA_PLAY_BUFFER_SIZE_HWORDS];
 
-/*
+
 uint16_t PdmBuffer[PDM_BUFFER_SIZE_HWORDS];
 uint16_t PcmBuffer[PCM_BUFFER_SIZE_SAMPLES];
 PDM_Filter_Handler_t PDM_FilterHandler;
@@ -92,11 +92,11 @@ uint32_t errorPDM;
 uint16_t TempPcmBuffer[TEMP_PCM_BUFFER_SAMPLES];
 volatile uint32_t TempPcmBufferIndex = 0; // Índice para llenar TempPcmBuffer
 volatile uint8_t DataReadyForPlayback = 0;
-*/
-enum ERROR e = CHILL;
+
+
 static float sine_phase_rad = 0.0f; // Acumulador de fase en radianes
 static const float phase_step_rad = (2.0f * 3.14 * SINE_FREQUENCY) / OUTPUT_SAMPLE_RATE; // Incremento de fase por muestra
-
+int sinwave = 0;
 
 /* USER CODE END PV */
 
@@ -109,7 +109,7 @@ void PeriphCommonClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-/*
+
 void ProcessNewPcmData() {
     if (DataReadyForPlayback == 0) {
         uint32_t samples_to_copy = PCM_BUFFER_SIZE_SAMPLES;
@@ -127,7 +127,7 @@ void ProcessNewPcmData() {
 
     }
 }
-*/
+
 /* USER CODE END 0 */
 
 /**
@@ -171,7 +171,7 @@ int main(void)
   MX_SPI1_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  /*
+  if(sinwave == 0){
     PDM_FilterHandler.bit_order  = PDM_FILTER_BIT_ORDER_LSB;
     PDM_FilterHandler.endianness = PDM_FILTER_ENDIANNESS_LE;
     PDM_FilterHandler.high_pass_tap = 2122358088;
@@ -210,22 +210,23 @@ int main(void)
     	Error_Handler();
     }
     cs43l22_SetVolume(AUDIO_I2C_ADDRESS, 70);
-   */
+  } else{
 
-  if(cs43l22_Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 70, OUTPUT_SAMPLE_RATE) != 0) {
+	  if(cs43l22_Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 70, OUTPUT_SAMPLE_RATE) != 0) {
 
-      Error_Handler();
-  }
+		  Error_Handler();
+	  }
 
-  cs43l22_SetVolume(AUDIO_I2C_ADDRESS, 50); // Volumen entre 0 y 100
+	  cs43l22_SetVolume(AUDIO_I2C_ADDRESS, 50); // Volumen entre 0 y 100
 
-   Fill_Sine_Buffer(&PlayBuffer[0], PLAY_BUFFER_HALF_SAMPLES);
-   Fill_Sine_Buffer(&PlayBuffer[PLAY_BUFFER_HALF_SAMPLES], PLAY_BUFFER_HALF_SAMPLES);
-   if(cs43l22_Play(AUDIO_I2C_ADDRESS, NULL, 0) != 0) {
-       Error_Handler();
-   }
-  if(HAL_I2S_Transmit_DMA(&hi2s3, (uint16_t*)PlayBuffer, DMA_BUFFER_SIZE_HWORDS) != HAL_OK) {
-      Error_Handler();
+	   Fill_Sine_Buffer(&PlayBuffer[0], PLAY_BUFFER_HALF_SAMPLES);
+	   Fill_Sine_Buffer(&PlayBuffer[PLAY_BUFFER_HALF_SAMPLES], PLAY_BUFFER_HALF_SAMPLES);
+	   if(cs43l22_Play(AUDIO_I2C_ADDRESS, NULL, 0) != 0) {
+		   Error_Handler();
+	   }
+	  if(HAL_I2S_Transmit_DMA(&hi2s3, (uint16_t*)PlayBuffer, DMA_BUFFER_SIZE_HWORDS) != HAL_OK) {
+		  Error_Handler();
+	  }
   }
   /* USER CODE END 2 */
 
@@ -323,29 +324,30 @@ void Fill_Sine_Buffer(int16_t *pBuffer, uint32_t num_samples) {
         }
     }
 }
-/*
-void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
-{
-  if (hi2s->Instance == SPI2)
-  {
-    PDM_Filter(&PdmBuffer[0], &PcmBuffer[0], &PDM_FilterHandler);
-    ProcessNewPcmData();
-  }
-}
 
-void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
-{
-  if (hi2s->Instance == SPI2)
-  {
-    PDM_Filter(&PdmBuffer[PDM_BUFFER_SIZE_HWORDS / 2], &PcmBuffer[0], &PDM_FilterHandler);
-    ProcessNewPcmData();
-  }
-}
-*/
+void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
+	{
+	  if (hi2s->Instance == SPI2)
+	  {
+		PDM_Filter(&PdmBuffer[0], &PcmBuffer[0], &PDM_FilterHandler);
+		ProcessNewPcmData();
+	  }
+	}
+
+	void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
+	{
+	  if (hi2s->Instance == SPI2)
+	  {
+		PDM_Filter(&PdmBuffer[PDM_BUFFER_SIZE_HWORDS / 2], &PcmBuffer[0], &PDM_FilterHandler);
+		ProcessNewPcmData();
+	  }
+	}
+
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 {
   if (hi2s->Instance == SPI3)
-  {/*
+  {
+  	  if(sinwave == 0){
       if (DataReadyForPlayback == 1) {
           memcpy(&PlayBuffer[0], TempPcmBuffer, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
           DataReadyForPlayback = 0;
@@ -358,8 +360,9 @@ void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
           memset(&PlayBuffer[0], 0, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
 
       }
-      */
+      } else{
       Fill_Sine_Buffer(&PlayBuffer[0], PLAY_BUFFER_HALF_SAMPLES);
+      }
   }
 }
 
@@ -368,7 +371,8 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
   if (hi2s->Instance == SPI3)
   {
-     /* if (DataReadyForPlayback == 1) {
+	  if(sinwave == 0){
+      if (DataReadyForPlayback == 1) {
           memcpy(&PlayBuffer[PLAY_BUFFER_SIZE_SAMPLES], TempPcmBuffer, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
            DataReadyForPlayback = 0;
 
@@ -381,8 +385,10 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 
           memset(&PlayBuffer[PLAY_BUFFER_SIZE_SAMPLES], 0, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
       }
-      */
-      Fill_Sine_Buffer(&PlayBuffer[PLAY_BUFFER_HALF_SAMPLES], PLAY_BUFFER_HALF_SAMPLES);  }
+      }else{
+      Fill_Sine_Buffer(&PlayBuffer[PLAY_BUFFER_HALF_SAMPLES], PLAY_BUFFER_HALF_SAMPLES);
+      }
+   }
 }
 
 

@@ -144,7 +144,7 @@ if ~isempty(allDataBytes) && finalBytes > 0
     capturedAudioDuration = numSamples / fs;
     fprintf('Convertido a %d muestras (%s) representando %.2f segundos de audio.\n', ...
             numel(audioDataUint16), targetDataType, capturedAudioDuration);
-    
+  %% HOLA  
     % --- Análisis ---
     % 1. Graficar Forma de Onda
     figure;
