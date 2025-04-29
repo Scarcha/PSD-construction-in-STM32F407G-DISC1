@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<item key="hasShownOverlayPopupBefore" value="true"/>
+	<item key="replaceBarOpen" value="false"/>
+	<list key="searchhistory">
+		<item value="16000"/>
+		<item value="44000"/>
+		<item value="PCM_BUFFER_SIZE_SAMPLES"/>
+		<item value="AUDIO_BUFFER_SIZE_SAMPLES"/>
+		<item value="PlayBuffer"/>
+		<item value="pDest"/>
+		<item value="PDM_DECIMATION_FACTOR"/>
+		<item value="AppliState"/>
+		<item value="waverecorder"/>
+		<item value="WaveRecorderStart"/>
+		<item value="MEDIA"/>
+		<item value="SDA"/>
+	</list>
+</section>

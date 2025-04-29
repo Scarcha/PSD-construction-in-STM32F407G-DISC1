@@ -24,6 +24,10 @@ C_DEPS :=
 SUBDIRS := \
 Core/Src \
 Core/Startup \
+Drivers/BSP/Components/cs43l22 \
+Drivers/BSP/Components/lis302dl \
+Drivers/BSP/Components/lis3dsh \
+Drivers/BSP/STM32F4-Discovery \
 Drivers/CMSIS_DSP/Source/BasicMathFunctions \
 Drivers/CMSIS_DSP/Source/BayesFunctions \
 Drivers/CMSIS_DSP/Source/CommonTables \

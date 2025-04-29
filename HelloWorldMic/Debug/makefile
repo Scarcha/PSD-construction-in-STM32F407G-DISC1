@@ -27,6 +27,10 @@ RM := rm -rf
 -include Drivers/CMSIS_DSP/Source/CommonTables/subdir.mk
 -include Drivers/CMSIS_DSP/Source/BayesFunctions/subdir.mk
 -include Drivers/CMSIS_DSP/Source/BasicMathFunctions/subdir.mk
+-include Drivers/BSP/STM32F4-Discovery/subdir.mk
+-include Drivers/BSP/Components/lis3dsh/subdir.mk
+-include Drivers/BSP/Components/lis302dl/subdir.mk
+-include Drivers/BSP/Components/cs43l22/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk
 -include objects.mk

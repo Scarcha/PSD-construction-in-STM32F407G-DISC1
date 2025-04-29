@@ -1,2 +1,7 @@
-fft_output
-mi_buffer_audio
+PdmBuffer
+PcmBuffer
+PlayBuffer
+a
+PcmBuffer_Ready_Flag
+e
+errorPDM

@@ -1,22 +1,62 @@
-23:25:49 **** Build of configuration Debug for project HelloWorldMic ****
+04:35:39 **** Incremental Build of configuration Debug for project HelloWorldMic ****
 make -j16 all 
-arm-none-eabi-size  HelloWorldMic.elf 
-   text	   data	    bss	    dec	    hex	filename
-  21372	   1116	   2660	  25148	   623c	HelloWorldMic.elf
-Finished building: default.size.stdout
- 
-23:32:37 **** Incremental Build of configuration Debug for project HelloWorldMic ****
-make -j16 all 
-arm-none-eabi-gcc "../Core/Src/i2s.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/HelloWorldMic/Drivers/CMSIS_DSP/PrivateInclude" -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/HelloWorldMic/Drivers/CMSIS_DSP/Include" -I../PDM2PCM/App -I../Middlewares/ST/STM32_Audio/Addons/PDM/Inc -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/i2s.d" -MT"Core/Src/i2s.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/i2s.o"
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/HelloWorldMic/Drivers/CMSIS_DSP/PrivateInclude" -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/HelloWorldMic/Drivers/CMSIS_DSP/Include" -I../PDM2PCM/App -I../Middlewares/ST/STM32_Audio/Addons/PDM/Inc -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/HelloWorldMic/Drivers/CMSIS_DSP/PrivateInclude" -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/HelloWorldMic/Drivers/CMSIS_DSP/Include" -I../PDM2PCM/App -I../Middlewares/ST/STM32_Audio/Addons/PDM/Inc -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/HelloWorldMic/Drivers/BSP" -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/HelloWorldMic/Drivers/BSP/Components" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:226:4: warning: implicit declaration of function 'Fill_Sine_Buffer' [-Wimplicit-function-declaration]
+  226 |    Fill_Sine_Buffer(&PlayBuffer[0], PLAY_BUFFER_HALF_SAMPLES);
+      |    ^~~~~~~~~~~~~~~~
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:323:6: warning: conflicting types for 'Fill_Sine_Buffer'; have 'void(int16_t *, uint32_t)' {aka 'void(short int *, long unsigned int)'}
+  323 | void Fill_Sine_Buffer(int16_t *pBuffer, uint32_t num_samples) {
+      |      ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:226:4: note: previous implicit declaration of 'Fill_Sine_Buffer' with type 'void(int16_t *, uint32_t)' {aka 'void(short int *, long unsigned int)'}
+  226 |    Fill_Sine_Buffer(&PlayBuffer[0], PLAY_BUFFER_HALF_SAMPLES);
+      |    ^~~~~~~~~~~~~~~~
+../Core/Src/main.c: In function 'Fill_Sine_Buffer':
+../Core/Src/main.c:326:49: warning: implicit declaration of function 'sinf' [-Wimplicit-function-declaration]
+  326 |         pBuffer[i] = (int16_t)(SINE_AMPLITUDE * sinf(sine_phase_rad)); // sinf es para floats
+      |                                                 ^~~~
+../Core/Src/main.c:36:1: note: include '<math.h>' or provide a declaration of 'sinf'
+   35 | #include "../STM32F4-Discovery/stm32f4_discovery.h"
+  +++ |+#include <math.h>
+   36 | /* USER CODE END Includes */
+../Core/Src/main.c:326:49: warning: incompatible implicit declaration of built-in function 'sinf' [-Wbuiltin-declaration-mismatch]
+  326 |         pBuffer[i] = (int16_t)(SINE_AMPLITUDE * sinf(sine_phase_rad)); // sinf es para floats
+      |                                                 ^~~~
+../Core/Src/main.c:326:49: note: include '<math.h>' or provide a declaration of 'sinf'
+../Core/Src/main.c: In function 'HAL_I2S_TxHalfCpltCallback':
+../Core/Src/main.c:383:24: warning: pointer targets in passing argument 1 of 'Fill_Sine_Buffer' differ in signedness [-Wpointer-sign]
+  383 |       Fill_Sine_Buffer(&PlayBuffer[0], PLAY_BUFFER_HALF_SAMPLES);
+      |                        ^~~~~~~~~~~~~~
+      |                        |
+      |                        uint16_t * {aka short unsigned int *}
+../Core/Src/main.c:323:32: note: expected 'int16_t *' {aka 'short int *'} but argument is of type 'uint16_t *' {aka 'short unsigned int *'}
+  323 | void Fill_Sine_Buffer(int16_t *pBuffer, uint32_t num_samples) {
+      |                       ~~~~~~~~~^~~~~~~
+../Core/Src/main.c: In function 'HAL_I2S_TxCpltCallback':
+../Core/Src/main.c:408:24: warning: pointer targets in passing argument 1 of 'Fill_Sine_Buffer' differ in signedness [-Wpointer-sign]
+  408 |       Fill_Sine_Buffer(&PlayBuffer[PLAY_BUFFER_HALF_SAMPLES], PLAY_BUFFER_HALF_SAMPLES);  }
+      |                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      |                        |
+      |                        uint16_t * {aka short unsigned int *}
+../Core/Src/main.c:323:32: note: expected 'int16_t *' {aka 'short int *'} but argument is of type 'uint16_t *' {aka 'short unsigned int *'}
+  323 | void Fill_Sine_Buffer(int16_t *pBuffer, uint32_t num_samples) {
+      |                       ~~~~~~~~~^~~~~~~
 arm-none-eabi-gcc -o "HelloWorldMic.elf" @"objects.list"  -Wl,--start-group -l:libPDMFilter_CM4_GCC_wc32.a -l:libPDMFilter_CM4_IAR_wc32.a -Wl,--end-group -mcpu=cortex-m4 -T"C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="HelloWorldMic.map" -Wl,--gc-sections -static -L../Middlewares/ST/STM32_Audio/Addons/PDM/Lib --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 Finished building target: HelloWorldMic.elf
  
 arm-none-eabi-size  HelloWorldMic.elf 
 arm-none-eabi-objdump -h -S HelloWorldMic.elf  > "HelloWorldMic.list"
    text	   data	    bss	    dec	    hex	filename
-  21528	   1116	   2660	  25304	   62d8	HelloWorldMic.elf
+  42988	   1124	   3764	  47876	   bb04	HelloWorldMic.elf
 Finished building: default.size.stdout
  
 Finished building: HelloWorldMic.list
+ 
+04:36:28 **** Incremental Build of configuration Debug for project HelloWorldMic ****
+make -j16 all 
+arm-none-eabi-size  HelloWorldMic.elf 
+   text	   data	    bss	    dec	    hex	filename
+  42988	   1124	   3764	  47876	   bb04	HelloWorldMic.elf
+Finished building: default.size.stdout
  
