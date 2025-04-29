@@ -1,51 +1,19 @@
-% =========================================================================
-% MATLAB Script para Capturar y Reproducir Audio desde STM32 vía UART
-% =========================================================================
-% Objetivo: Capturar aproximadamente 10 segundos de datos de audio PCM
-%            enviados por el STM32 a través de un conversor UART-USB
-%            y luego reproducirlos y graficarlos en MATLAB.
-%
-% Requisitos Previos:
-% 1. STM32 programado para enviar datos de TempPcmBuffer vía UART DMA.
-% 2. Conversor UART-USB externo conectado correctamente (TX-RX, RX-TX, GND)
-%    y detectado por el PC como un puerto COM (o tty/cu en Linux/Mac).
-% 3. Haber instalado/reinstalado drivers si fue necesario.
-% 4. Tener MATLAB con Instrument Control Toolbox o Serial Port support package.
-%
-% Autor: Gemini AI (Basado en conversación)
-% Fecha: 29 de Abril, 2025 (Hora local Viña del Mar ~3:31 AM)
-% =========================================================================
-
 clear; clc; close all;
-
-% --- PARÁMETROS DE CONFIGURACIÓN (¡AJUSTAR SEGÚN TU STM32!) ---
-
-% Tasa de muestreo configurada en el STM32 (I2S2 e I2S3)
-% ¡MUY IMPORTANTE QUE SEA CORRECTA! Recomiendo probar con 16000 primero.
 fs = 16000; % O 48000 si estás intentando esa tasa (y relojes son precisos)
+targetBaudRate = 115200; 
 
-% Baud Rate configurado en STM32 (CubeMX) y soportado por tu conversor
-% ¡MUY IMPORTANTE QUE COINCIDA! Recomiendo la más alta posible (ej: 921600)
-targetBaudRate = 921600; % Ejemplo: 921600 bps. Cambia si usas otra.
-
-% Duración deseada del audio a capturar en segundos
 captureAudioSeconds = 10; 
+bytesPerSample = 2;     
+targetDataType = 'uint16'; 
+endianness = 'l';
 
-% --- Parámetros Derivados (No tocar usualmente) ---
-bytesPerSample = 2;          % Para uint16_t
-targetDataType = 'uint16';   % Tipo de dato en C
-endianness = 'l';            % 'l' para Little-Endian (STM32)
-
-% --- Calcular Bytes Necesarios y Timeout ---
 targetNumSamples = fs * captureAudioSeconds;
 targetNumBytes = targetNumSamples * bytesPerSample;
 
-% Estimación del tiempo UART + margen generoso para timeout
-bytesPerSecond_UART_Approx = targetBaudRate / 10; % Estimación bytes/seg
+bytesPerSecond_UART_Approx = targetBaudRate / 10; 
 estimatedTransferTime = targetNumBytes / bytesPerSecond_UART_Approx;
-% Timeout: Al menos el doble del tiempo estimado, más unos segundos extra.
+
 maxCaptureDurationSeconds = estimatedTransferTime * 2 + 10; 
-% Asegurar un mínimo por si la tasa es muy baja o Fs es baja
 maxCaptureDurationSeconds = max(maxCaptureDurationSeconds, captureAudioSeconds * 5); 
 
 fprintf('CONFIGURACIÓN:\n');

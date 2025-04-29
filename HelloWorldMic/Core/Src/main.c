@@ -211,31 +211,19 @@ int main(void)
     }
     cs43l22_SetVolume(AUDIO_I2C_ADDRESS, 70);
    */
-  // --- Inicializar el Códec CS43L22 ---
-  // AUDIO_IO_Init(); // El driver cs43l22_Init ya llama a AUDIO_IO_Init y hace el reset HW
+
   if(cs43l22_Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 70, OUTPUT_SAMPLE_RATE) != 0) {
-      // El último argumento es la Fs que el codec debe esperar
+
       Error_Handler();
   }
 
-  // Ajustar volumen (opcional, empieza bajo/medio)
   cs43l22_SetVolume(AUDIO_I2C_ADDRESS, 50); // Volumen entre 0 y 100
 
-  // --- Llenar el buffer inicialmente (opcional, ej: con silencio o medio ciclo) ---
-  // Podríamos pre-llenar las dos mitades para empezar sin glitches
    Fill_Sine_Buffer(&PlayBuffer[0], PLAY_BUFFER_HALF_SAMPLES);
    Fill_Sine_Buffer(&PlayBuffer[PLAY_BUFFER_HALF_SAMPLES], PLAY_BUFFER_HALF_SAMPLES);
-  // O simplemente empezar con silencio:
-  // memset(PlayBuffer, 0, DMA_BUFFER_SIZE_HWORDS * sizeof(int16_t));
-
-  // --- Iniciar Codec Playback (enciende DAC, etc.) ---
    if(cs43l22_Play(AUDIO_I2C_ADDRESS, NULL, 0) != 0) {
        Error_Handler();
    }
-
-  // --- Iniciar Transmisión DMA I2S3 ---
-  // La HAL espera un puntero uint16_t*, hacemos cast aunque nuestros datos son int16_t.
-  // La transmisión es de bits, el signo lo interpreta el receptor (Codec).
   if(HAL_I2S_Transmit_DMA(&hi2s3, (uint16_t*)PlayBuffer, DMA_BUFFER_SIZE_HWORDS) != HAL_OK) {
       Error_Handler();
   }
@@ -246,7 +234,6 @@ int main(void)
   while (1)
   {
 
-	/* El bucle principal no hace nada relacionado con el audio, todo es por DMA/interrupciones */
 	HAL_Delay(500);
     /* USER CODE END WHILE */
 
@@ -360,20 +347,12 @@ void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
   if (hi2s->Instance == SPI3)
   {/*
       if (DataReadyForPlayback == 1) {
-          // 1. Copiar a PlayBuffer para la salida de audio
           memcpy(&PlayBuffer[0], TempPcmBuffer, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
-          DataReadyForPlayback = 0; // Marcar datos como consumidos para audio
-
-          // 2. Intentar enviar TempPcmBuffer por UART via DMA (NO BLOQUEANTE)
-          // Comprobar si la UART está lista para una nueva transmisión DMA
+          DataReadyForPlayback = 0;
           if (HAL_UART_GetState(&huart2) == HAL_UART_STATE_READY) {
-              // Enviar los datos (uint16_t necesita enviarse como bytes)
-              // El tamaño es el número de samples * 2 bytes/sample
               HAL_UART_Transmit_DMA(&huart2, (uint8_t*)TempPcmBuffer, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
           } else {
-              // La UART está ocupada con una transmisión anterior.
-              // Simplemente saltamos el envío de este bloque para no causar errores.
-              // Perderemos estos datos en la captura del PC, es normal con UART.
+
           }
       } else {
           memset(&PlayBuffer[0], 0, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
@@ -390,15 +369,13 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
   if (hi2s->Instance == SPI3)
   {
      /* if (DataReadyForPlayback == 1) {
-          // 1. Copiar a PlayBuffer para la salida de audio
           memcpy(&PlayBuffer[PLAY_BUFFER_SIZE_SAMPLES], TempPcmBuffer, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
-           DataReadyForPlayback = 0; // Marcar datos como consumidos para audio
+           DataReadyForPlayback = 0;
 
-          // 2. Intentar enviar TempPcmBuffer por UART via DMA (NO BLOQUEANTE)
           if (HAL_UART_GetState(&huart2) == HAL_UART_STATE_READY) {
               HAL_UART_Transmit_DMA(&huart2, (uint8_t*)TempPcmBuffer, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
           } else {
-              // UART ocupada, saltar envío.
+
           }
       } else {
 
