@@ -1,0 +1,6 @@
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/STM32F4-Discovery/stm32f4_discovery_accelerometer.c:81:9:BSP_ACCELERO_Init	32	static
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/STM32F4-Discovery/stm32f4_discovery_accelerometer.c:164:9:BSP_ACCELERO_ReadID	16	static
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/STM32F4-Discovery/stm32f4_discovery_accelerometer.c:178:6:BSP_ACCELERO_Reset	8	static
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/STM32F4-Discovery/stm32f4_discovery_accelerometer.c:189:6:BSP_ACCELERO_Click_ITConfig	8	static
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/STM32F4-Discovery/stm32f4_discovery_accelerometer.c:200:6:BSP_ACCELERO_Click_ITClear	8	static
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/STM32F4-Discovery/stm32f4_discovery_accelerometer.c:213:6:BSP_ACCELERO_GetXYZ	24	static

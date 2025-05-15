@@ -1,0 +1,12 @@
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis302dl/lis302dl.c:106:6:LIS302DL_Init	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis302dl/lis302dl.c:124:6:LIS302DL_DeInit	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis302dl/lis302dl.c:134:9:LIS302DL_ReadID	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis302dl/lis302dl.c:153:6:LIS302DL_FilterConfig	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis302dl/lis302dl.c:177:6:LIS302DL_InterruptConfig	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis302dl/lis302dl.c:198:6:LIS302DL_Click_IntConfig	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis302dl/lis302dl.c:250:6:LIS302DL_Click_IntClear	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis302dl/lis302dl.c:267:6:LIS302DL_LowpowerCmd	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis302dl/lis302dl.c:290:6:LIS302DL_DataRateCmd	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis302dl/lis302dl.c:313:6:LIS302DL_FullScaleCmd	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis302dl/lis302dl.c:333:6:LIS302DL_RebootCmd	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis302dl/lis302dl.c:352:6:LIS302DL_ReadACC	5

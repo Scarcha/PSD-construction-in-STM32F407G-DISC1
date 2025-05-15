@@ -1,0 +1,10 @@
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis3dsh/lis3dsh.c:104:6:LIS3DSH_Init	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis3dsh/lis3dsh.c:129:6:LIS3DSH_DeInit	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis3dsh/lis3dsh.c:139:9:LIS3DSH_ReadID	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis3dsh/lis3dsh.c:159:6:LIS3DSH_InterruptConfig	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis3dsh/lis3dsh.c:191:6:LIS3DSH_Click_IntConfig	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis3dsh/lis3dsh.c:249:6:LIS3DSH_ODR_LowpowerCmd	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis3dsh/lis3dsh.c:279:6:LIS3DSH_DataRateCmd	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis3dsh/lis3dsh.c:305:6:LIS3DSH_FullScaleCmd	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis3dsh/lis3dsh.c:325:6:LIS3DSH_RebootCmd	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/lis3dsh/lis3dsh.c:344:6:LIS3DSH_ReadACC	7

@@ -1,0 +1,5 @@
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.c:84:20:USBH_OpenPipe	32	static
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.c:101:20:USBH_ClosePipe	16	static
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.c:116:9:USBH_AllocPipe	24	static
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.c:138:20:USBH_FreePipe	16	static
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.c:155:17:USBH_GetFreePipe	24	static

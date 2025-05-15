@@ -1,0 +1,5 @@
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Middlewares/Third_Party/FatFs/src/ff_gen_drv.c:39:9:FATFS_LinkDriverEx	2
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Middlewares/Third_Party/FatFs/src/ff_gen_drv.c:68:9:FATFS_LinkDriver	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Middlewares/Third_Party/FatFs/src/ff_gen_drv.c:80:9:FATFS_UnLinkDriverEx	3
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Middlewares/Third_Party/FatFs/src/ff_gen_drv.c:106:9:FATFS_UnLinkDriver	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Middlewares/Third_Party/FatFs/src/ff_gen_drv.c:116:9:FATFS_GetAttachedDriversNbr	1

@@ -1,0 +1,13 @@
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/cs43l22/cs43l22.c:116:10:cs43l22_Init	6
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/cs43l22/cs43l22.c:200:6:cs43l22_DeInit	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/cs43l22/cs43l22.c:211:10:cs43l22_ReadID	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/cs43l22/cs43l22.c:229:10:cs43l22_Play	2
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/cs43l22/cs43l22.c:255:10:cs43l22_Pause	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/cs43l22/cs43l22.c:274:10:cs43l22_Resume	2
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/cs43l22/cs43l22.c:302:10:cs43l22_Stop	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/cs43l22/cs43l22.c:327:10:cs43l22_SetVolume	3
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/cs43l22/cs43l22.c:354:10:cs43l22_SetFrequency	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/cs43l22/cs43l22.c:366:10:cs43l22_SetMute	2
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/cs43l22/cs43l22.c:395:10:cs43l22_SetOutputMode	5
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/cs43l22/cs43l22.c:434:10:cs43l22_Reset	1
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/Audio_playback_and_record/Drivers/BSP/Components/cs43l22/cs43l22.c:446:16:CODEC_IO_Write	1

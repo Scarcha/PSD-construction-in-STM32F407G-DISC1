@@ -39,34 +39,28 @@
 /* USER CODE BEGIN PTD */
 enum ERROR{
 	CHILL = -20,
-	PDM_CONF = -21,
-	CODEC_INI = -22,
-	I2S_TX_DMA = -23,
-	I2S_RX_DMA = -24,
+	PDM2PCM = -21,
+	CODEC = -22,
+	I2S_TX = -23,
+	I2S_RX = -24,
 	CODEC_PLAY = -25,
 };
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
-#define AUDIO_IN_SAMPLING_FREQUENCY  48000
-#define AUDIO_IN_CHANNELS            1
-#define PDM_DECIMATION_FACTOR        64
-#define PDM_Input_Clock_Freq_Hz      (AUDIO_IN_SAMPLING_FREQUENCY * PDM_DECIMATION_FACTOR)
-#define PDM_BUFFER_SIZE_BYTES        128
-#define PDM_BUFFER_SIZE_HWORDS       (PDM_BUFFER_SIZE_BYTES / 2)
-#define PCM_BUFFER_SIZE_SAMPLES      16
-#define PLAY_BUFFER_SIZE_SAMPLES     (PCM_BUFFER_SIZE_SAMPLES * 16)
-#define DMA_PLAY_BUFFER_SIZE_HWORDS  (PLAY_BUFFER_SIZE_SAMPLES * 2)
-#define TEMP_PCM_BUFFER_SAMPLES PLAY_BUFFER_SIZE_SAMPLES
-
-#define M_PI 3.14f
-#define OUTPUT_SAMPLE_RATE 16000
-#define SINE_FREQUENCY 440.0f
-#define SINE_AMPLITUDE 15000
-#define PLAY_BUFFER_HALF_SAMPLES 256
-#define DMA_BUFFER_SIZE_HWORDS   (PLAY_BUFFER_HALF_SAMPLES * 2)
+#define PCM_SAMPLING_FREQ       16000U  // Salida PCM deseada en Hz
+#define PDM_MIC_CHANNELS        1U      // Micrófono PDM es mono
+#define PCM_OUT_CHANNELS        1U
+#define CODEC_PCM_OUT_CHANNELS  2U
+#define AUDIO_FREQ_PDM_HAL      64000U
+#define PCM_MONO_SAMPLES_PER_HALF_BUFFER    (16 * 32) // 512 muestras MONO; 16 llamadas a MX_PDM2PCM_Process
+#define PCM_STEREO_OUTPUT_HALF_BUFFER_SIZE_UINT16  (PCM_MONO_SAMPLES_PER_HALF_BUFFER * CODEC_PCM_OUT_CHANNELS) // 256 * 2 = 512
+#define PDM_BYTES_PER_PROCESS_CALL         (16 * (64 / 8U)) // 16 * 8 = 128 bytes PDM
+#define NUM_PDM_PROCESS_CALLS_PER_HALF_BUFFER (PCM_MONO_SAMPLES_PER_HALF_BUFFER / 16) // 256 / 16 = 16
+#define PDM_RAW_INPUT_HALF_BUFFER_SIZE_BYTES       (PDM_BYTES_PER_PROCESS_CALL * NUM_PDM_PROCESS_CALLS_PER_HALF_BUFFER) // 128 * 16 = 2048 bytes
+#define PDM_RAW_INPUT_HALF_BUFFER_SIZE_UINT16      (PDM_RAW_INPUT_HALF_BUFFER_SIZE_BYTES / 2U) // 1024
+#define CS43L22_ADDRESS         0x94U  // Dirección I2C de 8 bits para CS43L22 (0x4A << 1)
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -77,27 +71,14 @@ enum ERROR{
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-uint16_t PlayBuffer[DMA_PLAY_BUFFER_SIZE_HWORDS];
+uint16_t pdm_raw_buffer[2][PDM_RAW_INPUT_HALF_BUFFER_SIZE_UINT16];
+int16_t  pcm_mono_processed_half_buffer[PCM_MONO_SAMPLES_PER_HALF_BUFFER]; // << VUELVE EL BUFFER MONO
+uint16_t pcm_stereo_output_buffer[2][PCM_STEREO_OUTPUT_HALF_BUFFER_SIZE_UINT16];
 
-
-uint16_t PdmBuffer[PDM_BUFFER_SIZE_HWORDS];
-uint16_t PcmBuffer[PCM_BUFFER_SIZE_SAMPLES];
-PDM_Filter_Handler_t PDM_FilterHandler;
-PDM_Filter_Config_t PDM_FilterConfigStruct;
-volatile int PcmBuffer_Ready_Flag = 0;
-volatile uint32_t PlaybackBufferPos = 0;
-int a = 0;
+volatile uint8_t pdm_input_buffer_idx = 2;
+volatile uint8_t pcm_output_buffer_ready_for_filling_idx = 0;
+extern PDM_Filter_Config_t PDM1_filter_config;
 enum ERROR e = CHILL;
-uint32_t errorPDM;
-uint16_t TempPcmBuffer[TEMP_PCM_BUFFER_SAMPLES];
-volatile uint32_t TempPcmBufferIndex = 0; // Índice para llenar TempPcmBuffer
-volatile uint8_t DataReadyForPlayback = 0;
-
-
-static float sine_phase_rad = 0.0f; // Acumulador de fase en radianes
-static const float phase_step_rad = (2.0f * 3.14 * SINE_FREQUENCY) / OUTPUT_SAMPLE_RATE; // Incremento de fase por muestra
-int sinwave = 0;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -110,23 +91,7 @@ void PeriphCommonClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-void ProcessNewPcmData() {
-    if (DataReadyForPlayback == 0) {
-        uint32_t samples_to_copy = PCM_BUFFER_SIZE_SAMPLES;
-        if (TempPcmBufferIndex + samples_to_copy > TEMP_PCM_BUFFER_SAMPLES) {
-             samples_to_copy = TEMP_PCM_BUFFER_SAMPLES - TempPcmBufferIndex;
-        }
-        memcpy(&TempPcmBuffer[TempPcmBufferIndex], PcmBuffer, samples_to_copy * sizeof(uint16_t));
-        TempPcmBufferIndex += samples_to_copy;
 
-        if (TempPcmBufferIndex >= TEMP_PCM_BUFFER_SAMPLES) {
-            DataReadyForPlayback = 1;  // Marcar que los datos están listos
-            TempPcmBufferIndex = 0;    // Resetear índice para el próximo bloque
-        }
-    } else {
-
-    }
-}
 
 /* USER CODE END 0 */
 
@@ -138,6 +103,9 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+	uint8_t initial_codec_volume = 120;
+	uint16_t pdm_buffer_offset_uint16 = 0;
+	uint16_t pcm_mono_buffer_offset = 0; // Offset para pcm_mono_processed_half_buffer
 
   /* USER CODE END 1 */
 
@@ -171,62 +139,25 @@ int main(void)
   MX_SPI1_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  if(sinwave == 0){
-    PDM_FilterHandler.bit_order  = PDM_FILTER_BIT_ORDER_LSB;
-    PDM_FilterHandler.endianness = PDM_FILTER_ENDIANNESS_LE;
-    PDM_FilterHandler.high_pass_tap = 2122358088;
-    PDM_FilterHandler.out_ptr_channels = AUDIO_IN_CHANNELS;
-    PDM_FilterHandler.in_ptr_channels  = AUDIO_IN_CHANNELS;
-    PDM_Filter_Init(&PDM_FilterHandler);
 
-    PDM_FilterConfigStruct.decimation_factor = PDM_FILTER_DEC_FACTOR_64;
-    PDM_FilterConfigStruct.output_samples_number = PCM_BUFFER_SIZE_SAMPLES;
-    PDM_FilterConfigStruct.mic_gain = 0;
+  if (cs43l22_Init(CS43L22_ADDRESS, OUTPUT_DEVICE_HEADPHONE, initial_codec_volume, PCM_SAMPLING_FREQ) != 0) {
+      e = CODEC;
+      Error_Handler();
+  }
 
-    errorPDM = PDM_Filter_setConfig(&PDM_FilterHandler, &PDM_FilterConfigStruct);
-    if (errorPDM != 0) {
-    	e = PDM_CONF;
-       Error_Handler();
-    }
+  if (cs43l22_Play(CS43L22_ADDRESS, NULL, 0) != 0) {
+	  e = CODEC;
+      Error_Handler();
+  }
 
-    if(cs43l22_Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 70, AUDIO_IN_SAMPLING_FREQUENCY) != 0) {
-        e = CODEC_INI;
-    	Error_Handler();
-    }
+  memset(pcm_stereo_output_buffer, 0, sizeof(pcm_stereo_output_buffer));
 
-    memset(PlayBuffer, 0, DMA_PLAY_BUFFER_SIZE_HWORDS * sizeof(uint16_t));
+  if (HAL_I2S_Transmit_DMA(&hi2s3, (uint16_t *)pcm_stereo_output_buffer, PCM_STEREO_OUTPUT_HALF_BUFFER_SIZE_UINT16 * 2) != HAL_OK) {
+    Error_Handler();
+  }
 
-
-    if (HAL_I2S_Transmit_DMA(&hi2s3, (uint16_t *)PlayBuffer, DMA_PLAY_BUFFER_SIZE_HWORDS) != HAL_OK) {
-    	e = I2S_TX_DMA;
-    	Error_Handler();
-    }
-    if(HAL_I2S_Receive_DMA(&hi2s2, PdmBuffer, PDM_BUFFER_SIZE_HWORDS) != HAL_OK) {
-    	e = I2S_RX_DMA;
-    	Error_Handler();
-    }
-    if(cs43l22_Play(AUDIO_I2C_ADDRESS, NULL, 0) != 0) {
-        e = CODEC_PLAY;
-    	Error_Handler();
-    }
-    cs43l22_SetVolume(AUDIO_I2C_ADDRESS, 70);
-  } else{
-
-	  if(cs43l22_Init(AUDIO_I2C_ADDRESS, OUTPUT_DEVICE_HEADPHONE, 70, OUTPUT_SAMPLE_RATE) != 0) {
-
-		  Error_Handler();
-	  }
-
-	  cs43l22_SetVolume(AUDIO_I2C_ADDRESS, 50); // Volumen entre 0 y 100
-
-	   Fill_Sine_Buffer(&PlayBuffer[0], PLAY_BUFFER_HALF_SAMPLES);
-	   Fill_Sine_Buffer(&PlayBuffer[PLAY_BUFFER_HALF_SAMPLES], PLAY_BUFFER_HALF_SAMPLES);
-	   if(cs43l22_Play(AUDIO_I2C_ADDRESS, NULL, 0) != 0) {
-		   Error_Handler();
-	   }
-	  if(HAL_I2S_Transmit_DMA(&hi2s3, (uint16_t*)PlayBuffer, DMA_BUFFER_SIZE_HWORDS) != HAL_OK) {
-		  Error_Handler();
-	  }
+  if (HAL_I2S_Receive_DMA(&hi2s2, (uint16_t *)pdm_raw_buffer, PDM_RAW_INPUT_HALF_BUFFER_SIZE_UINT16 * 2) != HAL_OK) {
+    Error_Handler();
   }
   /* USER CODE END 2 */
 
@@ -234,8 +165,51 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  if (pdm_input_buffer_idx != 2) { // Un buffer PDM está listo (0 o 1)
+	        uint16_t* pdm_half_buffer_start_ptr;
+	        uint16_t* pcm_stereo_half_buffer_start_ptr;
 
-	HAL_Delay(500);
+	        if (pdm_input_buffer_idx == 0) {
+	          pdm_half_buffer_start_ptr = pdm_raw_buffer[0];
+	        } else {
+	          pdm_half_buffer_start_ptr = pdm_raw_buffer[1];
+	        }
+
+	        // Procesar el PDM_RAW_INPUT_HALF_BUFFER en trozos, llenando pcm_mono_processed_half_buffer
+	        pdm_buffer_offset_uint16 = 0;
+	        pcm_mono_buffer_offset = 0; // Offset para pcm_mono_processed_half_buffer
+
+	        for (int i = 0; i < NUM_PDM_PROCESS_CALLS_PER_HALF_BUFFER; i++) {
+	          // MX_PDM2PCM_Process ahora toma (uint16_t *PDMBuf, uint16_t *PCMBuf)
+	          // y PDM1_filter_config.output_samples_number = 16 (mono)
+	          if (MX_PDM2PCM_Process(
+	                  pdm_half_buffer_start_ptr + pdm_buffer_offset_uint16,
+	                  (uint16_t*)(pcm_mono_processed_half_buffer + pcm_mono_buffer_offset) // Escribe 16 muestras mono aquí
+	               ) != 0) { // Retorna 0 para éxito
+	              e = PDM2PCM;
+	          }
+	          pdm_buffer_offset_uint16 += (PDM_BYTES_PER_PROCESS_CALL / 2U);
+	          pcm_mono_buffer_offset += PDM1_filter_config.output_samples_number; // Avanza por 16 muestras mono
+	        }
+
+	        // Ahora que pcm_mono_processed_half_buffer está lleno, espera a que un buffer de salida estéreo esté libre
+	        while (pcm_output_buffer_ready_for_filling_idx == 2) { /* Espera ocupada */ }
+
+	        if (pcm_output_buffer_ready_for_filling_idx == 0) {
+	          pcm_stereo_half_buffer_start_ptr = pcm_stereo_output_buffer[0];
+	        } else { // pcm_output_buffer_ready_for_filling_idx == 1
+	          pcm_stereo_half_buffer_start_ptr = pcm_stereo_output_buffer[1];
+	        }
+
+	        // Convertir el pcm_mono_processed_half_buffer a pcm_stereo_half_buffer_start_ptr
+	        for (uint16_t i = 0; i < PCM_MONO_SAMPLES_PER_HALF_BUFFER; i++) {
+	          pcm_stereo_half_buffer_start_ptr[i * 2]     = (uint16_t)pcm_mono_processed_half_buffer[i];
+	          pcm_stereo_half_buffer_start_ptr[i * 2 + 1] = (uint16_t)pcm_mono_processed_half_buffer[i];
+	        }
+
+	        pdm_input_buffer_idx = 2;
+	        pcm_output_buffer_ready_for_filling_idx = 2;
+	      }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -308,103 +282,42 @@ void PeriphCommonClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
-void Fill_Sine_Buffer(int16_t *pBuffer, uint32_t num_samples) {
-    for(uint32_t i = 0; i < num_samples; i++) {
-        // Calcular valor seno y escalar a int16_t
-        pBuffer[i] = (int16_t)(SINE_AMPLITUDE * sinf(sine_phase_rad)); // sinf es para floats
-
-        // Incrementar fase para la próxima muestra
-        sine_phase_rad += phase_step_rad;
-
-        // Mantener la fase dentro de 0 a 2*PI para evitar que crezca indefinidamente (opcional pero bueno)
-        if (sine_phase_rad >= (2.0f * M_PI)) {
-            sine_phase_rad -= (2.0f * M_PI);
-        } else if (sine_phase_rad < 0.0f) { // Por si acaso phase_step fuera negativo
-             sine_phase_rad += (2.0f * M_PI);
-        }
-    }
+void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
+{
+  if (hi2s->Instance == SPI2) {
+    pdm_input_buffer_idx = 0;
+  }
 }
 
-void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
-	{
-	  if (hi2s->Instance == SPI2)
-	  {
-		PDM_Filter(&PdmBuffer[0], &PcmBuffer[0], &PDM_FilterHandler);
-		ProcessNewPcmData();
-	  }
-	}
-
-	void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
-	{
-	  if (hi2s->Instance == SPI2)
-	  {
-		PDM_Filter(&PdmBuffer[PDM_BUFFER_SIZE_HWORDS / 2], &PcmBuffer[0], &PDM_FilterHandler);
-		ProcessNewPcmData();
-	  }
-	}
+void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
+{
+  if (hi2s->Instance == SPI2) {
+    pdm_input_buffer_idx = 1;
+  }
+}
 
 void HAL_I2S_TxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 {
-  if (hi2s->Instance == SPI3)
-  {
-  	  if(sinwave == 0){
-      if (DataReadyForPlayback == 1) {
-          memcpy(&PlayBuffer[0], TempPcmBuffer, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
-          DataReadyForPlayback = 0;
-          if (HAL_UART_GetState(&huart2) == HAL_UART_STATE_READY) {
-              HAL_UART_Transmit_DMA(&huart2, (uint8_t*)TempPcmBuffer, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
-          } else {
-
-          }
-      } else {
-          memset(&PlayBuffer[0], 0, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
-
-      }
-      } else{
-      Fill_Sine_Buffer(&PlayBuffer[0], PLAY_BUFFER_HALF_SAMPLES);
-      }
+  if (hi2s->Instance == SPI3) {
+    pcm_output_buffer_ready_for_filling_idx = 0;
   }
 }
-
 
 void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
-  if (hi2s->Instance == SPI3)
-  {
-	  if(sinwave == 0){
-      if (DataReadyForPlayback == 1) {
-          memcpy(&PlayBuffer[PLAY_BUFFER_SIZE_SAMPLES], TempPcmBuffer, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
-           DataReadyForPlayback = 0;
-
-          if (HAL_UART_GetState(&huart2) == HAL_UART_STATE_READY) {
-              HAL_UART_Transmit_DMA(&huart2, (uint8_t*)TempPcmBuffer, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
-          } else {
-
-          }
-      } else {
-
-          memset(&PlayBuffer[PLAY_BUFFER_SIZE_SAMPLES], 0, TEMP_PCM_BUFFER_SAMPLES * sizeof(uint16_t));
-      }
-      }else{
-      Fill_Sine_Buffer(&PlayBuffer[PLAY_BUFFER_HALF_SAMPLES], PLAY_BUFFER_HALF_SAMPLES);
-      }
-   }
+  if (hi2s->Instance == SPI3) {
+     pcm_output_buffer_ready_for_filling_idx = 1;
+  }
 }
-
 
 void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s)
 {
-  if(hi2s->Instance == SPI2) {
-    // Error en recepción PDM
-	  //a = -1;
+  if (hi2s->Instance == SPI2) {
+    e = I2S_RX;
+  } else if (hi2s->Instance == SPI3) {
+	e = I2S_TX;
   }
-  if(hi2s->Instance == SPI3) {
-    // Error en transmisión PCM
-	  //a = -2;
-  }
-
 }
-
 
 
 /* USER CODE END 4 */

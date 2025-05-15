@@ -3,6 +3,12 @@
 	<item key="hasShownOverlayPopupBefore" value="true"/>
 	<item key="replaceBarOpen" value="false"/>
 	<list key="searchhistory">
+		<item value="initial_codec_volume"/>
+		<item value="printf"/>
+		<item value="MX_PDM2PCM_Process"/>
+		<item value="PDM"/>
+		<item value="MEDIA"/>
+		<item value="LED"/>
 		<item value="16000"/>
 		<item value="44000"/>
 		<item value="PCM_BUFFER_SIZE_SAMPLES"/>
@@ -12,8 +18,5 @@
 		<item value="PDM_DECIMATION_FACTOR"/>
 		<item value="AppliState"/>
 		<item value="waverecorder"/>
-		<item value="WaveRecorderStart"/>
-		<item value="MEDIA"/>
-		<item value="SDA"/>
 	</list>
 </section>

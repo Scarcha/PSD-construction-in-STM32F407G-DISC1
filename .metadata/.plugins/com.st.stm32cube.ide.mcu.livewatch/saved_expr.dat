@@ -1,7 +1,4 @@
-PdmBuffer
-PcmBuffer
-PlayBuffer
-a
-PcmBuffer_Ready_Flag
+pdm_raw_buffer
+pcm_mono_processed_half_buffer
+pcm_stereo_output_buffer
 e
-errorPDM

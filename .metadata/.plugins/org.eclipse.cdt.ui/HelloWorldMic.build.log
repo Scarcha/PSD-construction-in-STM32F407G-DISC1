@@ -1,10 +1,17 @@
-10:10:08 **** Incremental Build of configuration Debug for project HelloWorldMic ****
+02:02:50 **** Incremental Build of configuration Debug for project HelloWorldMic ****
 make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/HelloWorldMic/Drivers/CMSIS_DSP/PrivateInclude" -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/HelloWorldMic/Drivers/CMSIS_DSP/Include" -I../PDM2PCM/App -I../Middlewares/ST/STM32_Audio/Addons/PDM/Inc -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/HelloWorldMic/Drivers/BSP" -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/HelloWorldMic/Drivers/BSP/Components" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "HelloWorldMic.elf" @"objects.list"  -Wl,--start-group -l:libPDMFilter_CM4_GCC_wc32.a -l:libPDMFilter_CM4_IAR_wc32.a -Wl,--end-group -mcpu=cortex-m4 -T"C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="HelloWorldMic.map" -Wl,--gc-sections -static -L../Middlewares/ST/STM32_Audio/Addons/PDM/Lib --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: HelloWorldMic.elf
+ 
 arm-none-eabi-size  HelloWorldMic.elf 
+arm-none-eabi-objdump -h -S HelloWorldMic.elf  > "HelloWorldMic.list"
    text	   data	    bss	    dec	    hex	filename
-  44924	   1128	   4536	  50588	   c59c	HelloWorldMic.elf
+  40312	   1128	  16056	  57496	   e098	HelloWorldMic.elf
 Finished building: default.size.stdout
  
+Finished building: HelloWorldMic.list
+ 
 
-10:10:11 Build Finished. 0 errors, 0 warnings. (took 3s.511ms)
+02:02:55 Build Finished. 0 errors, 0 warnings. (took 5s.9ms)
 

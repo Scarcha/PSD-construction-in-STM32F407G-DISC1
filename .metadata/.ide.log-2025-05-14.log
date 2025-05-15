@@ -1,0 +1,102 @@
+2025-05-15 00:00:38,304 [INFO] NvicIntPanel:101 - NVIC parent = com.st.microxplorer.plugins.ip.nvic.MultiNvicIntPanel[,0,0,0x0,invalid,layout=javax.swing.BoxLayout,alignmentX=0.0,alignmentY=0.0,border=,flags=9,maximumSize=,minimumSize=,preferredSize=]
+2025-05-15 00:00:38,344 [INFO] I2sManager:658 - 1.92E8
+2025-05-15 00:00:38,344 [INFO] I2sManager:195 - I2S Clock Value : 1.92E8
+2025-05-15 00:00:38,344 [INFO] I2sManager:553 - AudioClock : 16000Divider : 187Odd : 1
+2025-05-15 00:00:38,395 [INFO] NvicIntPanel:101 - NVIC parent = com.st.microxplorer.plugins.ip.nvic.MultiNvicIntPanel[,0,0,0x0,invalid,layout=javax.swing.BoxLayout,alignmentX=0.0,alignmentY=0.0,border=,flags=9,maximumSize=,minimumSize=,preferredSize=]
+2025-05-15 00:00:43,105 [INFO] I2sManager:658 - 1.92E8
+2025-05-15 00:00:43,105 [INFO] I2sManager:195 - I2S Clock Value : 1.92E8
+2025-05-15 00:00:43,105 [INFO] I2sManager:553 - AudioClock : 15957Divider : 23Odd : 1
+2025-05-15 00:00:44,765 [INFO] I2sManager:658 - 1.92E8
+2025-05-15 00:00:44,765 [INFO] I2sManager:195 - I2S Clock Value : 1.92E8
+2025-05-15 00:00:44,765 [INFO] I2sManager:553 - AudioClock : 16000Divider : 187Odd : 1
+2025-05-15 00:00:46,176 [INFO] I2sManager:658 - 1.92E8
+2025-05-15 00:00:46,176 [INFO] I2sManager:195 - I2S Clock Value : 1.92E8
+2025-05-15 00:00:46,176 [INFO] I2sManager:553 - AudioClock : 15957Divider : 23Odd : 1
+2025-05-15 00:00:47,658 [INFO] I2sManager:658 - 1.92E8
+2025-05-15 00:00:47,658 [INFO] I2sManager:195 - I2S Clock Value : 1.92E8
+2025-05-15 00:00:47,658 [INFO] I2sManager:553 - AudioClock : 16000Divider : 187Odd : 1
+2025-05-15 00:01:05,603 [INFO] UtilMem:75 - End SaveConfig() Used Memory: 717900240 Bytes (880803840)
+2025-05-15 00:01:05,681 [INFO] UtilMem:75 - End SaveConfig() Used Memory: 743592400 Bytes (880803840)
+2025-05-15 00:01:07,545 [INFO] UtilMem:75 - End SaveConfig() Used Memory: 387703600 Bytes (880803840)
+2025-05-15 00:01:08,154 [INFO] BlockDiagram:2775 - set Specific Code input for plugin: SPI
+2025-05-15 00:01:08,155 [INFO] BlockDiagram:2775 - set Specific Code input for plugin: I2S
+2025-05-15 00:01:08,155 [INFO] BlockDiagram:2775 - set Specific Code input for plugin: I2S
+2025-05-15 00:01:08,155 [INFO] BlockDiagram:2775 - set Specific Code input for plugin: SYS
+2025-05-15 00:01:08,155 [INFO] BlockDiagram:2775 - set Specific Code input for plugin: RCC
+2025-05-15 00:01:08,155 [INFO] BlockDiagram:2775 - set Specific Code input for plugin: CRC
+2025-05-15 00:01:08,155 [INFO] BlockDiagram:2775 - set Specific Code input for plugin: I2C
+2025-05-15 00:01:08,155 [INFO] BlockDiagram:2775 - set Specific Code input for plugin: NVIC
+2025-05-15 00:01:08,155 [INFO] BlockDiagram:2775 - set Specific Code input for plugin: USART
+2025-05-15 00:01:08,155 [INFO] BlockDiagram:2775 - set Specific Code input for plugin: DMA
+2025-05-15 00:01:08,156 [INFO] BlockDiagram:2775 - set Specific Code input for plugin: GPIO
+2025-05-15 00:01:08,156 [INFO] BlockDiagram:2775 - set Specific Code input for plugin: PDM2PCM
+2025-05-15 00:01:08,158 [INFO] CodeGenerator:882 - code generatio: config db path: C:\ST\STM32CubeIDE_1.16.1\STM32CubeIDE\plugins\com.st.stm32cube.common.mx_6.14.1.202504091515\\db\
+2025-05-15 00:01:08,165 [WARN] IP:2250 - I2C_Coeff_DF not found: check if there is a RefParameter without a condition.
+2025-05-15 00:01:08,165 [WARN] IP:2250 - Analog_Filter not found: check if there is a RefParameter without a condition.
+2025-05-15 00:01:08,434 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\MXTmpFiles\license.tmp_save
+2025-05-15 00:01:08,913 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\MXTmpFiles\license.tmp
+2025-05-15 00:01:08,978 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\gpio.c_save
+2025-05-15 00:01:09,126 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\gpio.c
+2025-05-15 00:01:09,133 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\gpio.h_save
+2025-05-15 00:01:09,214 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\gpio.h
+2025-05-15 00:01:09,671 [INFO] Middleware:1452 - No code input for Bsp Dependency
+2025-05-15 00:01:09,687 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\crc.c_save
+2025-05-15 00:01:09,838 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\crc.c
+2025-05-15 00:01:09,846 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\crc.h_save
+2025-05-15 00:01:09,912 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\crc.h
+2025-05-15 00:01:09,962 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\dma.c_save
+2025-05-15 00:01:10,032 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\dma.c
+2025-05-15 00:01:10,041 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\dma.h_save
+2025-05-15 00:01:10,104 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\dma.h
+2025-05-15 00:01:10,117 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\i2c.c_save
+2025-05-15 00:01:10,220 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\i2c.c
+2025-05-15 00:01:10,227 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\i2c.h_save
+2025-05-15 00:01:10,323 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\i2c.h
+2025-05-15 00:01:10,337 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\i2s.c_save
+2025-05-15 00:01:10,433 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\i2s.c
+2025-05-15 00:01:10,440 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\i2s.h_save
+2025-05-15 00:01:10,495 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\i2s.h
+2025-05-15 00:01:10,498 [INFO] Middleware:1452 - No code input for Bsp Dependency
+2025-05-15 00:01:10,507 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\PDM2PCM\App\pdm2pcm.c_save
+2025-05-15 00:01:10,567 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\PDM2PCM\App\pdm2pcm.c
+2025-05-15 00:01:10,573 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\PDM2PCM\App\pdm2pcm.h_save
+2025-05-15 00:01:10,624 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\PDM2PCM\App\pdm2pcm.h
+2025-05-15 00:01:10,635 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\spi.c_save
+2025-05-15 00:01:10,708 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\spi.c
+2025-05-15 00:01:10,715 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\spi.h_save
+2025-05-15 00:01:10,768 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\spi.h
+2025-05-15 00:01:10,780 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\usart.c_save
+2025-05-15 00:01:10,852 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\usart.c
+2025-05-15 00:01:10,859 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\usart.h_save
+2025-05-15 00:01:10,914 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\usart.h
+2025-05-15 00:01:10,931 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\stm32f4xx_it.c_save
+2025-05-15 00:01:11,018 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\stm32f4xx_it.c
+2025-05-15 00:01:11,025 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\stm32f4xx_it.h_save
+2025-05-15 00:01:11,079 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\stm32f4xx_it.h
+2025-05-15 00:01:11,101 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\stm32f4xx_hal_msp.c_save
+2025-05-15 00:01:11,171 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\stm32f4xx_hal_msp.c
+2025-05-15 00:01:11,176 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\MXTmpFiles\system.tmp_save
+2025-05-15 00:01:11,220 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\MXTmpFiles\system.tmp
+2025-05-15 00:01:11,233 [INFO] CodeEngine:319 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\stm32f4xx_hal_conf.h_save
+2025-05-15 00:01:11,288 [INFO] CodeEngine:343 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\stm32f4xx_hal_conf.h
+2025-05-15 00:01:11,318 [INFO] ApiDbMcu:508 - Load IP Config File for CRC
+2025-05-15 00:01:11,322 [INFO] ApiDbMcu:508 - Load IP Config File for I2C1
+2025-05-15 00:01:11,325 [INFO] ApiDbMcu:508 - Load IP Config File for I2S2
+2025-05-15 00:01:11,328 [INFO] ApiDbMcu:508 - Load IP Config File for I2S3
+2025-05-15 00:01:11,331 [INFO] ApiDbMcu:508 - Load IP Config File for SPI1
+2025-05-15 00:01:11,334 [INFO] ApiDbMcu:508 - Load IP Config File for USART2
+2025-05-15 00:01:11,337 [INFO] ApiDbMcu:508 - Load IP Config File for RCC
+2025-05-15 00:01:11,353 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\main.h_save
+2025-05-15 00:01:11,431 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Inc\main.h
+2025-05-15 00:01:11,438 [INFO] CodeEngine:263 - oldGeneratedFile, C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\main.c_save
+2025-05-15 00:01:11,555 [INFO] CodeEngine:287 - Generated code: C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\HelloWorldMic\Core\Src\main.c
+2025-05-15 00:01:11,976 [INFO] ProjectBuilder:3324 - Time for Copy HAL[1] : 237mS.
+2025-05-15 00:01:11,988 [INFO] ProjectBuilder:4912 - Project Generator version: 4.6.0.1-B1
+2025-05-15 00:01:12,063 [INFO] ConfigFileManager:1590 - The Die is : DIE413
+2025-05-15 00:01:12,072 [INFO] ApiDbMcu:508 - Load IP Config File for FATFS
+2025-05-15 00:01:12,076 [INFO] ApiDbMcu:508 - Load IP Config File for FREERTOS
+2025-05-15 00:01:12,079 [INFO] ApiDbMcu:508 - Load IP Config File for LIBJPEG
+2025-05-15 00:01:12,084 [INFO] ApiDbMcu:508 - Load IP Config File for LWIP
+2025-05-15 00:01:12,090 [INFO] ApiDbMcu:508 - Load IP Config File for MBEDTLS
+2025-05-15 00:01:12,097 [INFO] ApiDbMcu:508 - Load IP Config File for USB_DEVICE
+2025-05-15 00:01:12,103 [INFO] ApiDbMcu:508 - Load IP Config File for USB_HOST
