@@ -1,0 +1,35 @@
+04:12:50 **** Incremental Build of configuration Debug for project FFTplusMIC ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F407xx -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I../PDM2PCM/App -I../Middlewares/ST/STM32_Audio/Addons/PDM/Inc -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/FFTplusMIC/Drivers/BSP" -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/FFTplusMIC/Drivers/BSP/Components" -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/FFTplusMIC/Drivers/CMSIS_DSP/Include" -I"C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/FFTplusMIC/Drivers/CMSIS_DSP/PrivateInclude" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:202:20: warning: implicit declaration of function 'sprintf' [-Wimplicit-function-declaration]
+  202 |             len += sprintf(uart_tx_buffer + len, "%.2f\r\n", db_val);
+      |                    ^~~~~~~
+../Core/Src/main.c:31:1: note: include '<stdio.h>' or provide a declaration of 'sprintf'
+   30 | #include "../STM32F4-Discovery/stm32f4_discovery.h"
+  +++ |+#include <stdio.h>
+   31 | /* USER CODE END Includes */
+../Core/Src/main.c:202:20: warning: incompatible implicit declaration of built-in function 'sprintf' [-Wbuiltin-declaration-mismatch]
+  202 |             len += sprintf(uart_tx_buffer + len, "%.2f\r\n", db_val);
+      |                    ^~~~~~~
+../Core/Src/main.c:202:20: note: include '<stdio.h>' or provide a declaration of 'sprintf'
+../Core/Src/main.c:119:18: warning: unused variable 'pcm_mono_buffer_offset' [-Wunused-variable]
+  119 |         uint16_t pcm_mono_buffer_offset = 0; // Offset para pcm_mono_processed_half_buffer
+      |                  ^~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:118:18: warning: unused variable 'pdm_buffer_offset_uint16' [-Wunused-variable]
+  118 |         uint16_t pdm_buffer_offset_uint16 = 0;
+      |                  ^~~~~~~~~~~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "FFTplusMIC.elf" @"objects.list"  -Wl,--start-group -l:libPDMFilter_CM4_GCC_wc32.a -l:libPDMFilter_CM4_IAR_wc32.a -Wl,--end-group -mcpu=cortex-m4 -T"C:\Users\Tomas\STM32CubeIDE\workspace_1.16.1\HolaMundoFFTCMSIS5\PSD-construction-in-STM32F407G-DISC1\FFTplusMIC\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="FFTplusMIC.map" -Wl,--gc-sections -static -L../Middlewares/ST/STM32_Audio/Addons/PDM/Lib --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -u _printf_float -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: FFTplusMIC.elf
+ 
+arm-none-eabi-size  FFTplusMIC.elf 
+arm-none-eabi-objdump -h -S FFTplusMIC.elf  > "FFTplusMIC.list"
+   text	   data	    bss	    dec	    hex	filename
+ 135340	   1496	  16000	 152836	  25504	FFTplusMIC.elf
+Finished building: default.size.stdout
+ 
+Finished building: FFTplusMIC.list
+ 
+
+04:12:56 Build Finished. 0 errors, 4 warnings. (took 5s.638ms)
+

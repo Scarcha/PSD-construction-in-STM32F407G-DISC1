@@ -3,11 +3,11 @@
 	<item key="hasShownOverlayPopupBefore" value="true"/>
 	<item key="replaceBarOpen" value="false"/>
 	<list key="searchhistory">
+		<item value="printf"/>
 		<item value="PDM1_filter_config"/>
 		<item value="PDM2PCM"/>
 		<item value="16000"/>
 		<item value="initial_codec_volume"/>
-		<item value="printf"/>
 		<item value="MX_PDM2PCM_Process"/>
 		<item value="PDM"/>
 		<item value="MEDIA"/>

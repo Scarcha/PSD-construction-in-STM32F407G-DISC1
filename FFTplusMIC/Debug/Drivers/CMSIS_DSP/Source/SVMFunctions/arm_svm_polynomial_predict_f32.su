@@ -1,0 +1,2 @@
+C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/FFTplusMIC/Drivers/CMSIS_DSP/Include/dsp/svm_functions.h:64:27:arm_exponent_f32	24	static
+../Drivers/CMSIS_DSP/Source/SVMFunctions/arm_svm_polynomial_predict_f32.c:461:24:arm_svm_polynomial_predict_f32	56	static
