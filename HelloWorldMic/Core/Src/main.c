@@ -44,12 +44,14 @@ enum ERROR{
 	I2S_TX = -23,
 	I2S_RX = -24,
 	CODEC_PLAY = -25,
+	OVR = -26,
+	UDR = -27,
 };
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define PCM_SAMPLING_FREQ       16000U  // Salida PCM deseada en Hz
+#define PCM_SAMPLING_FREQ       32000U  // Salida PCM deseada en Hz
 #define PDM_MIC_CHANNELS        1U      // Micrófono PDM es mono
 #define PCM_OUT_CHANNELS        1U
 #define CODEC_PCM_OUT_CHANNELS  2U
@@ -159,6 +161,7 @@ int main(void)
   if (HAL_I2S_Receive_DMA(&hi2s2, (uint16_t *)pdm_raw_buffer, PDM_RAW_INPUT_HALF_BUFFER_SIZE_UINT16 * 2) != HAL_OK) {
     Error_Handler();
   }
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -312,10 +315,14 @@ void HAL_I2S_TxCpltCallback(I2S_HandleTypeDef *hi2s)
 
 void HAL_I2S_ErrorCallback(I2S_HandleTypeDef *hi2s)
 {
-  if (hi2s->Instance == SPI2) {
-    e = I2S_RX;
-  } else if (hi2s->Instance == SPI3) {
-	e = I2S_TX;
+  if (hi2s->Instance == SPI2) { // I2S2 para PDM Mic
+	if (hi2s->ErrorCode & HAL_I2S_ERROR_OVR) {
+	  e = OVR;
+	}
+  } else if (hi2s->Instance == SPI3) { // I2S3 para CODEC
+	if (hi2s->ErrorCode & HAL_I2S_ERROR_UDR) {
+	  e = UDR;
+	}
   }
 }
 

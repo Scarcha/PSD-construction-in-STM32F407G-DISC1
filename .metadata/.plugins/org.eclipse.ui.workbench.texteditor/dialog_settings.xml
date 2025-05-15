@@ -3,20 +3,20 @@
 	<item key="hasShownOverlayPopupBefore" value="true"/>
 	<item key="replaceBarOpen" value="false"/>
 	<list key="searchhistory">
+		<item value="PDM1_filter_config"/>
+		<item value="PDM2PCM"/>
+		<item value="16000"/>
 		<item value="initial_codec_volume"/>
 		<item value="printf"/>
 		<item value="MX_PDM2PCM_Process"/>
 		<item value="PDM"/>
 		<item value="MEDIA"/>
 		<item value="LED"/>
-		<item value="16000"/>
 		<item value="44000"/>
 		<item value="PCM_BUFFER_SIZE_SAMPLES"/>
 		<item value="AUDIO_BUFFER_SIZE_SAMPLES"/>
 		<item value="PlayBuffer"/>
 		<item value="pDest"/>
 		<item value="PDM_DECIMATION_FACTOR"/>
-		<item value="AppliState"/>
-		<item value="waverecorder"/>
 	</list>
 </section>
