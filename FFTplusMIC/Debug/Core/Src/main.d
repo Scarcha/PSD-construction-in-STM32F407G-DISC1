@@ -31,8 +31,10 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
- ../PDM2PCM/App/pdm2pcm.h \
+ ../Core/Inc/crc.h ../Core/Inc/main.h ../Core/Inc/dma.h ../Core/Inc/i2c.h \
+ ../Core/Inc/i2s.h ../PDM2PCM/App/pdm2pcm.h \
  ../Middlewares/ST/STM32_Audio/Addons/PDM/Inc/pdm2pcm_glo.h \
+ ../Core/Inc/spi.h ../Core/Inc/usart.h ../Core/Inc/gpio.h \
  C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/FFTplusMIC/Drivers/CMSIS_DSP/Include/arm_math.h \
  C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/FFTplusMIC/Drivers/CMSIS_DSP/Include/arm_math_types.h \
  ../Drivers/CMSIS/Include/cmsis_compiler.h \
@@ -101,8 +103,16 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_pwr_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_spi.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
+../Core/Inc/crc.h:
+../Core/Inc/main.h:
+../Core/Inc/dma.h:
+../Core/Inc/i2c.h:
+../Core/Inc/i2s.h:
 ../PDM2PCM/App/pdm2pcm.h:
 ../Middlewares/ST/STM32_Audio/Addons/PDM/Inc/pdm2pcm_glo.h:
+../Core/Inc/spi.h:
+../Core/Inc/usart.h:
+../Core/Inc/gpio.h:
 C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/FFTplusMIC/Drivers/CMSIS_DSP/Include/arm_math.h:
 C:/Users/Tomas/STM32CubeIDE/workspace_1.16.1/HolaMundoFFTCMSIS5/PSD-construction-in-STM32F407G-DISC1/FFTplusMIC/Drivers/CMSIS_DSP/Include/arm_math_types.h:
 ../Drivers/CMSIS/Include/cmsis_compiler.h:

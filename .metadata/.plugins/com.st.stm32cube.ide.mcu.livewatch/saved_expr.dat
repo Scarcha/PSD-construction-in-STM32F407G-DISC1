@@ -2,3 +2,7 @@ pdm_raw_buffer
 pcm_mono_processed_half_buffer
 pcm_stereo_output_buffer
 e
+fft_output_f32
+pdm_input_buffer_idx
+uart_tx_buffer
+pcm_output_buffer_ready_for_filling_idx

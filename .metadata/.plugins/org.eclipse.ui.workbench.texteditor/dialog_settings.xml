@@ -3,6 +3,12 @@
 	<item key="hasShownOverlayPopupBefore" value="true"/>
 	<item key="replaceBarOpen" value="false"/>
 	<list key="searchhistory">
+		<item value="pcm_stereo_output_buffer"/>
+		<item value="pcm_output_buffer_ready_for_filling_idx"/>
+		<item value="next_iteration_label"/>
+		<item value="mic"/>
+		<item value="pcm_mono_buffer_offset"/>
+		<item value="pdm_buffer_offset_uint16"/>
 		<item value="printf"/>
 		<item value="PDM1_filter_config"/>
 		<item value="PDM2PCM"/>
@@ -12,11 +18,5 @@
 		<item value="PDM"/>
 		<item value="MEDIA"/>
 		<item value="LED"/>
-		<item value="44000"/>
-		<item value="PCM_BUFFER_SIZE_SAMPLES"/>
-		<item value="AUDIO_BUFFER_SIZE_SAMPLES"/>
-		<item value="PlayBuffer"/>
-		<item value="pDest"/>
-		<item value="PDM_DECIMATION_FACTOR"/>
 	</list>
 </section>

@@ -18,7 +18,14 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "crc.h"
+#include "dma.h"
+#include "i2c.h"
+#include "i2s.h"
 #include "pdm2pcm.h"
+#include "spi.h"
+#include "usart.h"
+#include "gpio.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -26,6 +33,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <math.h>
+#include <stdio.h>
 #include "../Components/cs43l22/cs43l22.h"
 #include "../STM32F4-Discovery/stm32f4_discovery.h"
 /* USER CODE END Includes */
@@ -42,21 +50,47 @@ enum ERROR{
 	OVR = -26,
 	UDR = -27,
 };
+
+enum SWITCH{
+	IDLE = 0,
+	FIRST_HALF = 1,
+	SECOND_HALF = 2,
+};
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define PCM_SAMPLING_FREQ       32000U  // Salida PCM deseada en Hz
-#define AUDIO_FREQ_PDM_HAL      64000U
-#define FFT_SIZE 512U
-#define PCM_MONO_SAMPLES_PER_FFT_FRAME   FFT_SIZE
-#define PDM_SAMPLES_PER_PDM_LIB_CALL  16 // Lo que PDM1_filter_config.output_samples_number indica
-#define PDM_BYTES_PER_PROCESS_CALL    (PDM_SAMPLES_PER_PDM_LIB_CALL * (64 / 8U)) // PDM OSR = 64
-#define NUM_PDM_PROCESS_CALLS_PER_FFT_FRAME (PCM_MONO_SAMPLES_PER_FFT_FRAME / PDM_SAMPLES_PER_PDM_LIB_CALL)
+#define PCM_SAMPLING_FREQ       32000U  // Frecuencia de muestreo PCM (Hz)
+#define AUDIO_FREQ_PDM_HAL      64000U  // Para I2S2_BCLK ~2.048MHz -> 32kHz PCM con OSR 64
+#define CS43L22_ADDRESS         0x94U   // Dirección I2C del CS43L22
 
-#define PDM_RAW_INPUT_FFT_FRAME_SIZE_BYTES   (PDM_BYTES_PER_PROCESS_CALL * NUM_PDM_PROCESS_CALLS_PER_FFT_FRAME)
-#define PDM_RAW_INPUT_FFT_FRAME_SIZE_UINT16  (PDM_RAW_INPUT_FFT_FRAME_SIZE_BYTES / 2U)
-#define UART_BUFFER_SIZE 256
+// --- Configuración FFT ---
+#define FFT_SIZE                1024U
+
+// --- Canales (Según tu IOC para PDM2PCM y necesidad del CODEC) ---
+#define PDM_FILTER_OUT_CHANNELS 1U      // El filtro PDM produce MONO
+#define CODEC_PCM_OUT_CHANNELS  2U      // La salida al CODEC es ESTÉREO
+
+// --- Parámetros del Filtro PDM (Basados en config. IOC y librería) ---
+#define PDM_SAMPLES_PER_PDM_LIB_CALL  16  // Asumiendo PDM1_filter_config.output_samples_number = 16 (mono)
+#define PDM_DECIMATION_FACTOR         64  // Asumiendo PDM1_filter_config.decimation_factor = PDM_FILTER_DEC_FACTOR_64
+
+// --- Cálculo de Tamaños de Buffer Basados en FFT_SIZE y Config PDM ---
+#define PCM_MONO_SAMPLES_PER_FFT_FRAME   FFT_SIZE // 1024 muestras MONO
+
+#define PDM_BYTES_PER_PROCESS_CALL    (PDM_SAMPLES_PER_PDM_LIB_CALL * (PDM_DECIMATION_FACTOR / 8U)) // 16 * 8 = 128 bytes
+#define NUM_PDM_PROCESS_CALLS_PER_FFT_FRAME (PCM_MONO_SAMPLES_PER_FFT_FRAME / PDM_SAMPLES_PER_PDM_LIB_CALL) // 1024 / 16 = 64 llamadas
+
+#define PDM_RAW_INPUT_FFT_FRAME_SIZE_BYTES   (PDM_BYTES_PER_PROCESS_CALL * NUM_PDM_PROCESS_CALLS_PER_FFT_FRAME) // 128 * 64 = 8192 bytes
+#define PDM_RAW_INPUT_FFT_FRAME_SIZE_UINT16  (PDM_RAW_INPUT_FFT_FRAME_SIZE_BYTES / 2U) // 4096
+
+// Para el buffer de salida estéreo al CODEC (si el loopback sigue activo)
+#define PCM_STEREO_OUTPUT_HALF_BUFFER_SIZE_UINT16  (PCM_MONO_SAMPLES_PER_FFT_FRAME * CODEC_PCM_OUT_CHANNELS) // 1024 * 2 = 2048
+
+// --- UART ---
+#define UART_BUFFER_SIZE 256 // Para formatear strings antes de enviar
+
+// --- Para la conversión a dB ---
 #define DB_FLOOR -80.0f
 #define EPSILON  1e-9f
 /* USER CODE END PD */
@@ -67,44 +101,43 @@ enum ERROR{
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-CRC_HandleTypeDef hcrc;
-
-I2C_HandleTypeDef hi2c1;
-
-I2S_HandleTypeDef hi2s2;
-DMA_HandleTypeDef hdma_spi2_rx;
-
-SPI_HandleTypeDef hspi1;
-
-UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+extern PDM_Filter_Handler_t PDM1_filter_handler;
+extern PDM_Filter_Config_t PDM1_filter_config;
+
+// Buffers Ping-Pong para la entrada PDM
 uint16_t pdm_raw_buffer[2][PDM_RAW_INPUT_FFT_FRAME_SIZE_UINT16];
+// Buffer para la salida PCM MONO del filtro PDM
 int16_t  pcm_mono_fft_input_buffer[PCM_MONO_SAMPLES_PER_FFT_FRAME];
+
 volatile uint8_t pdm_input_buffer_idx = 2; // 0: primera mitad PDM lista, 1: segunda, 2: ninguna
+
+// Buffers y Handles para FFT
 float32_t fft_input_f32[FFT_SIZE];
 float32_t fft_output_f32[FFT_SIZE];
-float32_t fft_magnitudes[FFT_SIZE / 2];
 arm_rfft_fast_instance_f32 fft_instance;
+
+// Buffer para transmisión UART
 char uart_tx_buffer[UART_BUFFER_SIZE];
+
+// Ventana Hann
+float32_t hann_window[FFT_SIZE];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
-static void MX_GPIO_Init(void);
-static void MX_DMA_Init(void);
-static void MX_I2S2_Init(void);
-static void MX_CRC_Init(void);
-static void MX_USART2_UART_Init(void);
-static void MX_I2C1_Init(void);
-static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void init_hann_window(void) {
+    for (int i = 0; i < FFT_SIZE; i++) {
+        hann_window[i] = 0.5f * (1.0f - arm_cos_f32(2.0f * PI * i / (FFT_SIZE - 1.0f)));
+    }
+}
 /* USER CODE END 0 */
 
 /**
@@ -115,8 +148,8 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	uint16_t pdm_buffer_offset_uint16 = 0;
-	uint16_t pcm_mono_buffer_offset = 0; // Offset para pcm_mono_processed_half_buffer
+	  uint16_t pdm_buffer_offset_uint16 = 0;
+	  uint16_t pcm_mono_buffer_offset = 0;
 
   /* USER CODE END 1 */
 
@@ -143,66 +176,101 @@ int main(void)
   MX_CRC_Init();
   MX_PDM2PCM_Init();
   MX_USART2_UART_Init();
-  MX_I2C1_Init();
   MX_SPI1_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  if (arm_rfft_fast_init_f32(&fft_instance, FFT_SIZE) != ARM_MATH_SUCCESS) {
+  	  init_hann_window();
+
+    // Inicializar FFT
+    if (arm_rfft_fast_init_f32(&fft_instance, FFT_SIZE) != ARM_MATH_SUCCESS) {
+        Error_Handler();
+    }
+
+    // Iniciar DMA I2S2 para PDM
+    if (HAL_I2S_Receive_DMA(&hi2s2, (uint16_t *)pdm_raw_buffer, PDM_RAW_INPUT_FFT_FRAME_SIZE_UINT16 * 2) != HAL_OK) {
       Error_Handler();
-  }
-  if (HAL_I2S_Receive_DMA(&hi2s2, (uint16_t *)pdm_raw_buffer, PDM_RAW_INPUT_FFT_FRAME_SIZE_UINT16 * 2) != HAL_OK) {
-      Error_Handler();
-  }
-  pdm_input_buffer_idx = 2;
+    }
+    pdm_input_buffer_idx = 2; // Ningún buffer PDM listo
+
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	    if (pdm_input_buffer_idx != 2) { // Un buffer PDM (un frame FFT) está listo
-	        uint16_t* current_pdm_input_ptr;
+	  if (pdm_input_buffer_idx != 2) { // Un buffer PDM (un frame FFT) está listo
+	        uint16_t* current_pdm_input_half_ptr;
 
-	        if (pdm_input_buffer_idx == 0) { // Primera mitad PDM lista
-	            current_pdm_input_ptr = pdm_raw_buffer[0];
-	        } else { // Segunda mitad PDM lista (pdm_input_buffer_idx == 1)
-	            current_pdm_input_ptr = pdm_raw_buffer[1];
+	        if (pdm_input_buffer_idx == 0) {
+	          current_pdm_input_half_ptr = pdm_raw_buffer[0];
+	        } else { // pdm_input_buffer_idx == 1
+	          current_pdm_input_half_ptr = pdm_raw_buffer[1];
 	        }
 
-	        uint16_t pdm_chunk_offset = 0;
-	        uint16_t pcm_chunk_offset = 0;
+	        //  Convertir el frame PDM completo a PCM MONO en pcm_mono_fft_input_buffer
+	        pdm_buffer_offset_uint16 = 0;
+	        pcm_mono_buffer_offset = 0;
 	        for (int i = 0; i < NUM_PDM_PROCESS_CALLS_PER_FFT_FRAME; i++) {
-	            if (MX_PDM2PCM_Process(
-	                    current_pdm_input_ptr + pdm_chunk_offset,
-	                    (uint16_t*)(pcm_mono_fft_input_buffer + pcm_chunk_offset)
-	                 ) != 0) {
-	                goto next_iteration;
-	            }
-	            pdm_chunk_offset += (PDM_BYTES_PER_PROCESS_CALL / 2U);
-	            pcm_chunk_offset += PDM_SAMPLES_PER_PDM_LIB_CALL;
-	        }
-	        for (int i = 0; i < FFT_SIZE; i++) {
-	            fft_input_f32[i] = (float32_t)pcm_mono_fft_input_buffer[i];
+	          if (MX_PDM2PCM_Process(
+	                  current_pdm_input_half_ptr + pdm_buffer_offset_uint16,
+	                  (uint16_t*)(pcm_mono_fft_input_buffer + pcm_mono_buffer_offset)
+	               ) != 0) {
+	          }
+	          pdm_buffer_offset_uint16 += (PDM_BYTES_PER_PROCESS_CALL / 2U);
+	          pcm_mono_buffer_offset += PDM_SAMPLES_PER_PDM_LIB_CALL;
 	        }
 
+	        // Preparar datos para FFT: Convertir int16_t PCM a float32_t y aplicar ventana
+	        for (int i = 0; i < FFT_SIZE; i++) {
+	            fft_input_f32[i] = (float32_t)pcm_mono_fft_input_buffer[i] * hann_window[i]; // Aplicar ventana
+	        }
+
+	        // Calcular RFFT
 	        arm_rfft_fast_f32(&fft_instance, fft_input_f32, fft_output_f32, 0);
 
-	        arm_cmplx_mag_f32(fft_output_f32, fft_magnitudes, FFT_SIZE / 2);
-
-	        int len = 0;
+	        // Enviar Magnitudes FFT en dB por UART
+	        int uart_len = 0;
 	        float32_t mag_val, db_val;
-	        for (int i = 0; i < FFT_SIZE / 2; i++) {
-	            len += sprintf(uart_tx_buffer + len, "%.2f\r\n", fft_magnitudes[i]);
-	            if (len > (UART_BUFFER_SIZE - 15) || i == (FFT_SIZE / 2) - 1) {
-	                if (len > 0) {
-	                    HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, len, HAL_MAX_DELAY);
-	                    len = 0;
+
+	        // Enviar SOF
+	        uart_len = sprintf(uart_tx_buffer, "SOF\r\n");
+	        HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
+	        uart_len = 0;
+
+	        // Bin 0 (DC)
+	        mag_val = fabsf(fft_output_f32[0]);
+	        if (mag_val < EPSILON) { db_val = DB_FLOOR; }
+	        else { db_val = 20.0f * log10f(mag_val); if (db_val < DB_FLOOR) { db_val = DB_FLOOR; } }
+	        uart_len += sprintf(uart_tx_buffer + uart_len, "%.2f\r\n", db_val);
+
+	        // Bins 1 a (FFT_SIZE / 2) - 1
+	        for (int k = 1; k < FFT_SIZE / 2; k++) {
+	            float32_t real_part = fft_output_f32[2*k];
+	            float32_t imag_part = fft_output_f32[2*k+1];
+	            arm_sqrt_f32(real_part * real_part + imag_part * imag_part, &mag_val);
+
+
+	            if (mag_val < EPSILON) { db_val = DB_FLOOR; }
+	            else { db_val = 20.0f * log10f(mag_val); if (db_val < DB_FLOOR) { db_val = DB_FLOOR; } }
+	            uart_len += sprintf(uart_tx_buffer + uart_len, "%.2f\r\n", db_val);
+
+	            if (uart_len > (UART_BUFFER_SIZE - 20) || k == (FFT_SIZE / 2) - 1) {
+	                if (uart_len > 0) {
+	                    HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
+	                    uart_len = 0;
 	                }
 	            }
 	        }
+	        if (uart_len > 0) {
+	            HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
+	        }
 
-	next_iteration:
 	        pdm_input_buffer_idx = 2;
-	    }
+	        HAL_Delay(100);
+	  } else{
+		  HAL_Delay(1);
+	  }
 
     /* USER CODE END WHILE */
 
@@ -256,272 +324,21 @@ void SystemClock_Config(void)
   }
 }
 
-/**
-  * @brief CRC Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_CRC_Init(void)
-{
-
-  /* USER CODE BEGIN CRC_Init 0 */
-
-  /* USER CODE END CRC_Init 0 */
-
-  /* USER CODE BEGIN CRC_Init 1 */
-
-  /* USER CODE END CRC_Init 1 */
-  hcrc.Instance = CRC;
-  if (HAL_CRC_Init(&hcrc) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  __HAL_CRC_DR_RESET(&hcrc);
-  /* USER CODE BEGIN CRC_Init 2 */
-
-  /* USER CODE END CRC_Init 2 */
-
-}
-
-/**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C1_Init(void)
-{
-
-  /* USER CODE BEGIN I2C1_Init 0 */
-
-  /* USER CODE END I2C1_Init 0 */
-
-  /* USER CODE BEGIN I2C1_Init 1 */
-
-  /* USER CODE END I2C1_Init 1 */
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.ClockSpeed = 100000;
-  hi2c1.Init.DutyCycle = I2C_DUTYCYCLE_2;
-  hi2c1.Init.OwnAddress1 = 0;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0;
-  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C1_Init 2 */
-
-  /* USER CODE END I2C1_Init 2 */
-
-}
-
-/**
-  * @brief I2S2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2S2_Init(void)
-{
-
-  /* USER CODE BEGIN I2S2_Init 0 */
-
-  /* USER CODE END I2S2_Init 0 */
-
-  /* USER CODE BEGIN I2S2_Init 1 */
-
-  /* USER CODE END I2S2_Init 1 */
-  hi2s2.Instance = SPI2;
-  hi2s2.Init.Mode = I2S_MODE_MASTER_RX;
-  hi2s2.Init.Standard = I2S_STANDARD_PHILIPS;
-  hi2s2.Init.DataFormat = I2S_DATAFORMAT_16B;
-  hi2s2.Init.MCLKOutput = I2S_MCLKOUTPUT_DISABLE;
-  hi2s2.Init.AudioFreq = 64000;
-  hi2s2.Init.CPOL = I2S_CPOL_LOW;
-  hi2s2.Init.ClockSource = I2S_CLOCK_PLL;
-  hi2s2.Init.FullDuplexMode = I2S_FULLDUPLEXMODE_DISABLE;
-  if (HAL_I2S_Init(&hi2s2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2S2_Init 2 */
-
-  /* USER CODE END I2S2_Init 2 */
-
-}
-
-/**
-  * @brief SPI1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_SPI1_Init(void)
-{
-
-  /* USER CODE BEGIN SPI1_Init 0 */
-
-  /* USER CODE END SPI1_Init 0 */
-
-  /* USER CODE BEGIN SPI1_Init 1 */
-
-  /* USER CODE END SPI1_Init 1 */
-  /* SPI1 parameter configuration*/
-  hspi1.Instance = SPI1;
-  hspi1.Init.Mode = SPI_MODE_MASTER;
-  hspi1.Init.Direction = SPI_DIRECTION_2LINES_RXONLY;
-  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi1.Init.CRCPolynomial = 10;
-  if (HAL_SPI_Init(&hspi1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN SPI1_Init 2 */
-
-  /* USER CODE END SPI1_Init 2 */
-
-}
-
-/**
-  * @brief USART2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART2_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART2_Init 0 */
-
-  /* USER CODE END USART2_Init 0 */
-
-  /* USER CODE BEGIN USART2_Init 1 */
-
-  /* USER CODE END USART2_Init 1 */
-  huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
-  huart2.Init.WordLength = UART_WORDLENGTH_8B;
-  huart2.Init.StopBits = UART_STOPBITS_1;
-  huart2.Init.Parity = UART_PARITY_NONE;
-  huart2.Init.Mode = UART_MODE_TX_RX;
-  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART2_Init 2 */
-
-  /* USER CODE END USART2_Init 2 */
-
-}
-
-/**
-  * Enable DMA controller clock
-  */
-static void MX_DMA_Init(void)
-{
-
-  /* DMA controller clock enable */
-  __HAL_RCC_DMA1_CLK_ENABLE();
-
-  /* DMA interrupt init */
-  /* DMA1_Stream3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Stream3_IRQn);
-
-}
-
-/**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
-
-  /* USER CODE END MX_GPIO_Init_1 */
-
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOE_CLK_ENABLE();
-  __HAL_RCC_GPIOH_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOD_CLK_ENABLE();
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(CS_I2C_SPI_GPIO_Port, CS_I2C_SPI_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, LD4_Pin|LD3_Pin|LD5_Pin|LD6_Pin
-                          |Audio_RST_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin : CS_I2C_SPI_Pin */
-  GPIO_InitStruct.Pin = CS_I2C_SPI_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(CS_I2C_SPI_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : B1_Pin */
-  GPIO_InitStruct.Pin = B1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_EVT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PA4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : LD4_Pin LD3_Pin LD5_Pin LD6_Pin
-                           Audio_RST_Pin */
-  GPIO_InitStruct.Pin = LD4_Pin|LD3_Pin|LD5_Pin|LD6_Pin
-                          |Audio_RST_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PC7 PC10 PC12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_7|GPIO_PIN_10|GPIO_PIN_12;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /* USER CODE BEGIN MX_GPIO_Init_2 */
-
-  /* USER CODE END MX_GPIO_Init_2 */
-}
-
 /* USER CODE BEGIN 4 */
 void HAL_I2S_RxHalfCpltCallback(I2S_HandleTypeDef *hi2s)
 {
   if (hi2s->Instance == SPI2) {
-    pdm_input_buffer_idx = 0; // Primera mitad (primer frame FFT) PDM lista
+    pdm_input_buffer_idx = 0;
   }
 }
 
 void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
 {
   if (hi2s->Instance == SPI2) {
-    pdm_input_buffer_idx = 1; // Segunda mitad (segundo frame FFT) PDM lista
+    pdm_input_buffer_idx = 1;
   }
 }
+
 
 /* USER CODE END 4 */
 
