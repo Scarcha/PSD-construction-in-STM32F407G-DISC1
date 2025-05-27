@@ -259,13 +259,15 @@ int main(void)
 	            HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
 	            uart_len = 0;
 
-	            for (int k = 0; k < FFT_SIZE / 2; k++) {
+	            for (int k = 0; k < FFT_SIZE / 2; k++) { // Iterar sobre los N/2 bins acumulados
 	                avg_power = accumulated_psd[k] / WELCH_NUM_AVERAGES;
 
-	                if (avg_power < EPSILON) {
+	                // Normalización opcional para PSD V²/Hz: avg_power /= (PCM_SAMPLING_FREQ * SUM_SQ_WINDOW_COEFFS_NORMALIZED_BY_N_SQ)
+	                // Por ahora, dB relativos a la potencia promediada:
+	                if (avg_power < EPSILON) { // Usa un EPSILON apropiado para potencia (ej. EPSILON*EPSILON)
 	                    db_val = DB_FLOOR;
 	                } else {
-	                    db_val = 10.0f * log10f(avg_power);
+	                    db_val = 10.0f * log10f(avg_power); // 10*log10 para POTENCIA
 	                    if (db_val < DB_FLOOR) {
 	                        db_val = DB_FLOOR;
 	                    }
@@ -282,14 +284,21 @@ int main(void)
 	            if (uart_len > 0) { // Enviar cualquier remanente
 	                HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
 	            }
+	            // printf("Periodograma de Welch enviado (promedio de %lu frames)\r\n", WELCH_NUM_AVERAGES);
 
+	            // Resetear para el siguiente ciclo de promediado
 	            memset(accumulated_psd, 0, sizeof(accumulated_psd));
 	            welch_frame_count = 0;
 
-	            //HAL_Delay(100);
+	            // El HAL_Delay que tenías para MATLAB iría aquí si aún lo necesitas
+	            // HAL_Delay(50); // Ajusta según la velocidad de MATLAB
 	        }
 
-	        pdm_input_buffer_idx = 2;
+	        // ... (6. Lógica de Loopback al CODEC - SIN CAMBIOS, usa pcm_mono_fft_input_buffer) ...
+
+	        pdm_input_buffer_idx = 2; // Marcar buffer PDM como procesado
+	      } // Fin de if (pdm_input_buffer_idx != 2)
+	        HAL_Delay(100);
 	  } else{
 		  HAL_Delay(1);
 	  }

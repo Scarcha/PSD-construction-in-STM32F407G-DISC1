@@ -286,7 +286,7 @@ int main(void)
 	            memset(accumulated_psd, 0, sizeof(accumulated_psd));
 	            welch_frame_count = 0;
 
-	            //HAL_Delay(100);
+	            HAL_Delay(100);
 	        }
 
 	        pdm_input_buffer_idx = 2;

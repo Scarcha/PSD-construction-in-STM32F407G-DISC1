@@ -249,47 +249,12 @@ int main(void)
 	            current_power_val = (real_part * real_part) + (imag_part * imag_part);
 	            accumulated_psd[k] += current_power_val;
 	        }
-	        welch_frame_count++;
-	        if (welch_frame_count >= WELCH_NUM_AVERAGES) {
-	            int uart_len = 0;
-	            float32_t avg_power, db_val;
-
-	            // Enviar SOF
-	            uart_len = sprintf(uart_tx_buffer, "SOF\r\n");
+	        if (uart_len > 0) {
 	            HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
-	            uart_len = 0;
-
-	            for (int k = 0; k < FFT_SIZE / 2; k++) {
-	                avg_power = accumulated_psd[k] / WELCH_NUM_AVERAGES;
-
-	                if (avg_power < EPSILON) {
-	                    db_val = DB_FLOOR;
-	                } else {
-	                    db_val = 10.0f * log10f(avg_power);
-	                    if (db_val < DB_FLOOR) {
-	                        db_val = DB_FLOOR;
-	                    }
-	                }
-	                uart_len += sprintf(uart_tx_buffer + uart_len, "%.2f\r\n", db_val);
-
-	                if (uart_len > (UART_BUFFER_SIZE - 20) || k == (FFT_SIZE / 2) - 1) {
-	                    if (uart_len > 0) {
-	                        HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
-	                        uart_len = 0;
-	                    }
-	                }
-	            }
-	            if (uart_len > 0) { // Enviar cualquier remanente
-	                HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
-	            }
-
-	            memset(accumulated_psd, 0, sizeof(accumulated_psd));
-	            welch_frame_count = 0;
-
-	            //HAL_Delay(100);
 	        }
 
 	        pdm_input_buffer_idx = 2;
+	        HAL_Delay(100);
 	  } else{
 		  HAL_Delay(1);
 	  }

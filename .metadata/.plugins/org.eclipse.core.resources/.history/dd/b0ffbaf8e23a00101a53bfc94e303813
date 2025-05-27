@@ -126,10 +126,6 @@ char uart_tx_buffer[UART_BUFFER_SIZE];
 
 // Ventana Hann
 float32_t hann_window[FFT_SIZE];
-
-// Para Welch
-float32_t accumulated_psd[FFT_SIZE / 2];
-uint32_t welch_frame_count = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -192,8 +188,7 @@ int main(void)
     if (arm_rfft_fast_init_f32(&fft_instance, FFT_SIZE) != ARM_MATH_SUCCESS) {
         Error_Handler();
     }
-    memset(accumulated_psd, 0, sizeof(accumulated_psd)); // Inicializar acumulador a cero
-    welch_frame_count = 0;
+
     // Iniciar DMA I2S2 para PDM
     if (HAL_I2S_Receive_DMA(&hi2s2, (uint16_t *)pdm_raw_buffer, PDM_RAW_INPUT_FFT_FRAME_SIZE_UINT16 * 2) != HAL_OK) {
       Error_Handler();
@@ -237,59 +232,45 @@ int main(void)
 	        // Calcular RFFT
 	        arm_rfft_fast_f32(&fft_instance, fft_input_f32, fft_output_f32, 0);
 
-	        float32_t current_power_val;
+	        // Enviar Magnitudes FFT en dB por UART
+	        int uart_len = 0;
+	        float32_t mag_val, db_val;
+
+	        // Enviar SOF
+	        uart_len = sprintf(uart_tx_buffer, "SOF\r\n");
+	        HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
+	        uart_len = 0;
 
 	        // Bin 0 (DC)
-	        current_power_val = fft_output_f32[0] * fft_output_f32[0];
-	        accumulated_psd[0] += current_power_val;
+	        mag_val = fabsf(fft_output_f32[0]);
+	        if (mag_val < EPSILON) { db_val = DB_FLOOR; }
+	        else { db_val = 20.0f * log10f(mag_val); if (db_val < DB_FLOOR) { db_val = DB_FLOOR; } }
+	        uart_len += sprintf(uart_tx_buffer + uart_len, "%.2f\r\n", db_val);
+
 	        // Bins 1 a (FFT_SIZE / 2) - 1
 	        for (int k = 1; k < FFT_SIZE / 2; k++) {
 	            float32_t real_part = fft_output_f32[2*k];
 	            float32_t imag_part = fft_output_f32[2*k+1];
-	            current_power_val = (real_part * real_part) + (imag_part * imag_part);
-	            accumulated_psd[k] += current_power_val;
+	            arm_sqrt_f32(real_part * real_part + imag_part * imag_part, &mag_val);
+
+
+	            if (mag_val < EPSILON) { db_val = DB_FLOOR; }
+	            else { db_val = 20.0f * log10f(mag_val); if (db_val < DB_FLOOR) { db_val = DB_FLOOR; } }
+	            uart_len += sprintf(uart_tx_buffer + uart_len, "%.2f\r\n", db_val);
+
+	            if (uart_len > (UART_BUFFER_SIZE - 20) || k == (FFT_SIZE / 2) - 1) {
+	                if (uart_len > 0) {
+	                    HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
+	                    uart_len = 0;
+	                }
+	            }
 	        }
-	        welch_frame_count++;
-	        if (welch_frame_count >= WELCH_NUM_AVERAGES) {
-	            int uart_len = 0;
-	            float32_t avg_power, db_val;
-
-	            // Enviar SOF
-	            uart_len = sprintf(uart_tx_buffer, "SOF\r\n");
+	        if (uart_len > 0) {
 	            HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
-	            uart_len = 0;
-
-	            for (int k = 0; k < FFT_SIZE / 2; k++) {
-	                avg_power = accumulated_psd[k] / WELCH_NUM_AVERAGES;
-
-	                if (avg_power < EPSILON) {
-	                    db_val = DB_FLOOR;
-	                } else {
-	                    db_val = 10.0f * log10f(avg_power);
-	                    if (db_val < DB_FLOOR) {
-	                        db_val = DB_FLOOR;
-	                    }
-	                }
-	                uart_len += sprintf(uart_tx_buffer + uart_len, "%.2f\r\n", db_val);
-
-	                if (uart_len > (UART_BUFFER_SIZE - 20) || k == (FFT_SIZE / 2) - 1) {
-	                    if (uart_len > 0) {
-	                        HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
-	                        uart_len = 0;
-	                    }
-	                }
-	            }
-	            if (uart_len > 0) { // Enviar cualquier remanente
-	                HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
-	            }
-
-	            memset(accumulated_psd, 0, sizeof(accumulated_psd));
-	            welch_frame_count = 0;
-
-	            //HAL_Delay(100);
 	        }
 
 	        pdm_input_buffer_idx = 2;
+	        HAL_Delay(100);
 	  } else{
 		  HAL_Delay(1);
 	  }
