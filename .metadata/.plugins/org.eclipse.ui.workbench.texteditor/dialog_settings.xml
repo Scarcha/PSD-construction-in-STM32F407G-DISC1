@@ -19,4 +19,10 @@
 		<item value="MEDIA"/>
 		<item value="LED"/>
 	</list>
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
+		<item key="selection" value=""/>
+		<list key="findhistory">
+			<item value=""/>
+		</list>
+	</section>
 </section>

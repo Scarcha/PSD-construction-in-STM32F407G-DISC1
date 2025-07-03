@@ -82,8 +82,6 @@
 #define MCHDLYCR_OFFSET            (SYSCFG_OFFSET + 0x30U) 
 #define BSCKSEL_BIT_NUMBER         SYSCFG_MCHDLYCR_BSCKSEL_Pos
 #define MCHDLYCR_BSCKSEL_BB        (uint32_t)(PERIPH_BB_BASE + (MCHDLYCR_OFFSET * 32U) + (BSCKSEL_BIT_NUMBER * 4U))
-
-#define WELCH_NUM_AVERAGES      8
 /**
   * @}
   */

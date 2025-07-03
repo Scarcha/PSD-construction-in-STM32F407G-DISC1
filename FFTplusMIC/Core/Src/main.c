@@ -36,6 +36,7 @@
 #include <stdio.h>
 #include "../Components/cs43l22/cs43l22.h"
 #include "../STM32F4-Discovery/stm32f4_discovery.h"
+#include "filter_config.h"  // Configuración de filtros
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,6 +56,12 @@ enum SWITCH{
 	IDLE = 0,
 	FIRST_HALF = 1,
 	SECOND_HALF = 2,
+};
+
+enum PSD_METHOD{
+	WELCH = 0,
+	BARTLETT = 1,
+	PERIODOGRAM = 2,
 };
 /* USER CODE END PTD */
 
@@ -92,10 +99,31 @@ enum SWITCH{
 
 // --- Para la conversión a dB ---
 #define DB_FLOOR -80.0f
+
+// --- Configuraciones de filtros importadas desde filter_config.h ---
+// Las configuraciones de filtros ahora están centralizadas en filter_config.h
+// para facilitar ajustes sin modificar el código principal
+
 #define EPSILON  1e-9f
 
-// Para Welch
+// Para Welch con overlap
 #define WELCH_NUM_AVERAGES      8
+#define WELCH_OVERLAP_PERCENT   50  // Overlap del 50%
+#define WELCH_HOP_SIZE         (FFT_SIZE * (100 - WELCH_OVERLAP_PERCENT) / 100)  // 512 muestras
+#define CIRCULAR_BUFFER_SIZE   (FFT_SIZE + WELCH_HOP_SIZE)  // 1536 muestras para manejar overlap
+
+// Para Bartlett (sin overlap)
+#define BARTLETT_NUM_AVERAGES   8  // Mismo número de promedios que Welch
+
+// Para Periodograma (una sola ventana, sin promediado)
+#define PERIODOGRAM_WINDOW_TYPE 1  // 0: Rectangular, 1: Hann, 2: Hamming
+
+// GPIO para cambio de método (usando el botón de usuario en PA0 de la Discovery)
+#define METHOD_SWITCH_GPIO_PORT GPIOA
+#define METHOD_SWITCH_GPIO_PIN  GPIO_PIN_0
+
+// Selección del método PSD inicial
+#define INITIAL_PSD_METHOD      WELCH  // Método inicial al arrancar
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -114,6 +142,11 @@ uint16_t pdm_raw_buffer[2][PDM_RAW_INPUT_FFT_FRAME_SIZE_UINT16];
 // Buffer para la salida PCM MONO del filtro PDM
 int16_t  pcm_mono_fft_input_buffer[PCM_MONO_SAMPLES_PER_FFT_FRAME];
 
+// Buffer circular para manejar overlap en Welch
+int16_t circular_pcm_buffer[CIRCULAR_BUFFER_SIZE];
+uint16_t circular_buffer_write_index = 0;
+uint16_t samples_in_circular_buffer = 0;
+
 volatile uint8_t pdm_input_buffer_idx = 2; // 0: primera mitad PDM lista, 1: segunda, 2: ninguna
 
 // Buffers y Handles para FFT
@@ -124,12 +157,57 @@ arm_rfft_fast_instance_f32 fft_instance;
 // Buffer para transmisión UART
 char uart_tx_buffer[UART_BUFFER_SIZE];
 
-// Ventana Hann
+// Ventana Hann (para Welch)
 float32_t hann_window[FFT_SIZE];
+
+// Ventanas adicionales para periodograma
+float32_t hamming_window[FFT_SIZE];
 
 // Para Welch
 float32_t accumulated_psd[FFT_SIZE / 2];
 uint32_t welch_frame_count = 0;
+
+// Para Bartlett (variables adicionales)
+uint32_t bartlett_frame_count = 0;
+
+// Para Periodograma (buffer para resultados instantáneos)
+float32_t periodogram_psd[FFT_SIZE / 2];
+
+// Variables para cambio dinámico de método PSD
+volatile enum PSD_METHOD current_psd_method = INITIAL_PSD_METHOD;
+volatile uint8_t method_change_flag = 0;
+volatile uint32_t button_debounce_time = 0;
+
+// Variables para filtros de procesamiento de señal
+#if ENABLE_DC_FILTER
+static float32_t dc_filter_prev_input = 0.0f;
+static float32_t dc_filter_prev_output = 0.0f;
+#endif
+
+#if ENABLE_HPF_FILTER
+// Variables para filtro paso alto IIR de segundo orden
+static float32_t hpf_x1 = 0.0f, hpf_x2 = 0.0f;  // Entradas previas
+static float32_t hpf_y1 = 0.0f, hpf_y2 = 0.0f;  // Salidas previas
+static float32_t hpf_b0, hpf_b1, hpf_b2;        // Coeficientes del numerador
+static float32_t hpf_a1, hpf_a2;                // Coeficientes del denominador
+#endif
+
+#if ENABLE_PREEMPHASIS
+static float32_t preemph_prev = 0.0f;
+#endif
+
+#if ENABLE_AGC
+static float32_t agc_gain = 1.0f;
+static float32_t agc_rms_estimate = 1000.0f;
+#endif
+
+#if ENABLE_NOTCH_FILTER
+// Variables para filtro notch IIR de segundo orden
+static float32_t notch_x1 = 0.0f, notch_x2 = 0.0f;  // Entradas previas
+static float32_t notch_y1 = 0.0f, notch_y2 = 0.0f;  // Salidas previas
+static float32_t notch_b0, notch_b1, notch_b2;      // Coeficientes del numerador
+static float32_t notch_a1, notch_a2;                // Coeficientes del denominador
+#endif
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -144,6 +222,452 @@ void init_hann_window(void) {
     for (int i = 0; i < FFT_SIZE; i++) {
         hann_window[i] = 0.5f * (1.0f - arm_cos_f32(2.0f * PI * i / (FFT_SIZE - 1.0f)));
     }
+}
+
+void init_hamming_window(void) {
+    for (int i = 0; i < FFT_SIZE; i++) {
+        hamming_window[i] = 0.54f - 0.46f * arm_cos_f32(2.0f * PI * i / (FFT_SIZE - 1.0f));
+    }
+}
+
+#if ENABLE_DC_FILTER
+// Filtro paso alto de primer orden para eliminar DC
+// y = alpha * (y_prev + x - x_prev)
+float32_t apply_dc_filter(float32_t input) {
+    float32_t output = DC_FILTER_ALPHA * (dc_filter_prev_output + input - dc_filter_prev_input);
+    dc_filter_prev_input = input;
+    dc_filter_prev_output = output;
+    return output;
+}
+
+// Resetear el filtro DC cuando cambia el método
+void reset_dc_filter(void) {
+    dc_filter_prev_input = 0.0f;
+    dc_filter_prev_output = 0.0f;
+}
+#endif
+
+#if ENABLE_HPF_FILTER
+// Inicializar filtro paso alto IIR de segundo orden (Butterworth)
+void init_hpf_filter(void) {
+    float32_t fs = (float32_t)PCM_SAMPLING_FREQ;
+    float32_t fc = HPF_CUTOFF_HZ;
+    float32_t w = 2.0f * PI * fc / fs;
+    float32_t cos_w = arm_cos_f32(w);
+    float32_t sin_w = arm_sin_f32(w);
+    
+    if (HPF_ORDER == 1) {
+        // Filtro paso alto de primer orden
+        float32_t RC = 1.0f / (2.0f * PI * fc);
+        float32_t dt = 1.0f / fs;
+        float32_t alpha = RC / (RC + dt);
+        
+        hpf_b0 = alpha;
+        hpf_b1 = -alpha;
+        hpf_b2 = 0.0f;
+        hpf_a1 = -(alpha - 1.0f);
+        hpf_a2 = 0.0f;
+    } else {
+        // Filtro paso alto de segundo orden (Butterworth)
+        float32_t Q = 0.707f; // Factor de calidad para Butterworth
+        float32_t alpha = sin_w / (2.0f * Q);
+        float32_t norm = 1.0f + alpha;
+        
+        // Coeficientes para filtro paso alto
+        hpf_b0 = (1.0f - cos_w) / (2.0f * norm);  // Para HPF: (1-cos(w))/2
+        hpf_b1 = -(1.0f - cos_w) / norm;          // Para HPF: -(1-cos(w))
+        hpf_b2 = (1.0f - cos_w) / (2.0f * norm);  // Para HPF: (1-cos(w))/2
+        hpf_a1 = -2.0f * cos_w / norm;            // Igual para ambos tipos
+        hpf_a2 = (1.0f - alpha) / norm;           // Igual para ambos tipos
+    }
+    
+    // Resetear estados
+    hpf_x1 = hpf_x2 = hpf_y1 = hpf_y2 = 0.0f;
+}
+
+float32_t apply_hpf_filter(float32_t input) {
+    float32_t output = hpf_b0 * input + hpf_b1 * hpf_x1 + hpf_b2 * hpf_x2 
+                      - hpf_a1 * hpf_y1 - hpf_a2 * hpf_y2;
+    
+    // Actualizar estados
+    hpf_x2 = hpf_x1;
+    hpf_x1 = input;
+    hpf_y2 = hpf_y1;
+    hpf_y1 = output;
+    
+    return output;
+}
+
+void reset_hpf_filter(void) {
+    hpf_x1 = hpf_x2 = hpf_y1 = hpf_y2 = 0.0f;
+}
+#endif
+
+#if ENABLE_PREEMPHASIS
+// Pre-énfasis: y[n] = x[n] - α * x[n-1]
+float32_t apply_preemphasis(float32_t input) {
+    float32_t output = input - PREEMPHASIS_ALPHA * preemph_prev;
+    preemph_prev = input;
+    return output;
+}
+
+void reset_preemphasis(void) {
+    preemph_prev = 0.0f;
+}
+#endif
+
+#if ENABLE_AGC
+// Control automático de ganancia
+float32_t apply_agc(float32_t input) {
+    // Estimar RMS con suavizado exponencial
+    float32_t input_squared = input * input;
+    agc_rms_estimate = AGC_ALPHA * agc_rms_estimate + (1.0f - AGC_ALPHA) * input_squared;
+    float32_t rms = sqrtf(agc_rms_estimate);
+    
+    // Calcular ganancia necesaria
+    if (rms > 10.0f) {  // Evitar división por cero
+        float32_t target_gain = AGC_TARGET_RMS / rms;
+        agc_gain = AGC_ALPHA * agc_gain + (1.0f - AGC_ALPHA) * target_gain;
+        
+        // Limitar ganancia para evitar amplificación excesiva
+        if (agc_gain > 10.0f) agc_gain = 10.0f;
+        if (agc_gain < 0.1f) agc_gain = 0.1f;
+    }
+    
+    return input * agc_gain;
+}
+
+void reset_agc(void) {
+    agc_gain = 1.0f;
+    agc_rms_estimate = 1000.0f;
+}
+#endif
+
+#if ENABLE_NOTCH_FILTER
+// Inicializar filtro notch IIR de segundo orden
+void init_notch_filter(void) {
+    float32_t fs = (float32_t)PCM_SAMPLING_FREQ;
+    float32_t fc = NOTCH_FREQ_HZ;  // Frecuencia del notch
+    float32_t Q = NOTCH_Q_FACTOR;  // Factor de calidad
+    
+    float32_t w = 2.0f * PI * fc / fs;  // Frecuencia normalizada
+    float32_t cos_w = arm_cos_f32(w);
+    float32_t sin_w = arm_sin_f32(w);
+    float32_t alpha = sin_w / (2.0f * Q);  // Factor de anchura
+    
+    // Coeficientes para filtro notch (band-stop) - Implementación correcta
+    float32_t norm = 1.0f + alpha;
+    
+    // Numerador (ceros en la frecuencia de notch)
+    notch_b0 = 1.0f / norm;              // Ganancia DC = 1
+    notch_b1 = -2.0f * cos_w / norm;     // Ceros complejos conjugados
+    notch_b2 = 1.0f / norm;              // Simetría
+    
+    // Denominador (polos cerca pero no en la frecuencia de notch)
+    notch_a1 = -2.0f * cos_w / norm;     // Igual que b1 para notch
+    notch_a2 = (1.0f - alpha) / norm;    // Controla el ancho de banda
+    
+    // Resetear estados
+    notch_x1 = notch_x2 = notch_y1 = notch_y2 = 0.0f;
+}
+
+float32_t apply_notch_filter(float32_t input) {
+    float32_t output = notch_b0 * input + notch_b1 * notch_x1 + notch_b2 * notch_x2 
+                      - notch_a1 * notch_y1 - notch_a2 * notch_y2;
+    
+    // Actualizar estados
+    notch_x2 = notch_x1;
+    notch_x1 = input;
+    notch_y2 = notch_y1;
+    notch_y1 = output;
+    
+    return output;
+}
+
+void reset_notch_filter(void) {
+    notch_x1 = notch_x2 = notch_y1 = notch_y2 = 0.0f;
+}
+#endif
+
+// Función completa de procesamiento de señal
+float32_t process_sample(float32_t input) {
+    float32_t output = input;
+    
+    // 1. Filtro DC - eliminar offset constante (primero)
+#if ENABLE_DC_FILTER
+    output = apply_dc_filter(output);
+#endif
+
+    // 2. Filtro HPF - eliminar bajas frecuencias (segundo)
+#if ENABLE_HPF_FILTER
+    output = apply_hpf_filter(output);
+#endif
+
+    // 3. Filtro Notch - eliminar frecuencias específicas (tercero)
+#if ENABLE_NOTCH_FILTER
+    output = apply_notch_filter(output);
+#endif
+
+    // 4. Pre-énfasis - modificar respuesta en frecuencia (cuarto)
+#if ENABLE_PREEMPHASIS
+    output = apply_preemphasis(output);
+#endif
+
+    // 5. AGC - control de ganancia (siempre al final)
+#if ENABLE_AGC
+    output = apply_agc(output);
+#endif
+
+    return output;
+}
+
+// Función para procesar una ventana FFT con overlap (Welch)
+void process_welch_window(void) {
+    // Extraer una ventana del buffer circular y aplicar procesamiento completo
+    for (int i = 0; i < FFT_SIZE; i++) {
+        int circular_index = (circular_buffer_write_index - FFT_SIZE + i + CIRCULAR_BUFFER_SIZE) % CIRCULAR_BUFFER_SIZE;
+        float32_t sample = (float32_t)circular_pcm_buffer[circular_index];
+        
+        // Aplicar todos los filtros de procesamiento
+        sample = process_sample(sample);
+        
+        fft_input_f32[i] = sample * hann_window[i];
+    }
+    
+    // Calcular RFFT
+    arm_rfft_fast_f32(&fft_instance, fft_input_f32, fft_output_f32, 0);
+    
+    float32_t current_power_val;
+    
+    // Bin 0 (DC)
+    current_power_val = fft_output_f32[0] * fft_output_f32[0];
+    accumulated_psd[0] += current_power_val;
+    
+    // Bins 1 a (FFT_SIZE / 2) - 1
+    for (int k = 1; k < FFT_SIZE / 2; k++) {
+        float32_t real_part = fft_output_f32[2*k];
+        float32_t imag_part = fft_output_f32[2*k+1];
+        current_power_val = (real_part * real_part) + (imag_part * imag_part);
+        accumulated_psd[k] += current_power_val;
+    }
+    
+    welch_frame_count++;
+}
+
+// Función para procesar una ventana FFT sin overlap (Bartlett)
+void process_bartlett_window(int16_t* pcm_buffer) {
+    // Aplicar ventana rectangular y procesamiento completo
+    for (int i = 0; i < FFT_SIZE; i++) {
+        float32_t sample = (float32_t)pcm_buffer[i];
+        
+        // Aplicar todos los filtros de procesamiento
+        sample = process_sample(sample);
+        
+        fft_input_f32[i] = sample;
+    }
+    
+    // Calcular RFFT
+    arm_rfft_fast_f32(&fft_instance, fft_input_f32, fft_output_f32, 0);
+    
+    float32_t current_power_val;
+    
+    // Bin 0 (DC)
+    current_power_val = fft_output_f32[0] * fft_output_f32[0];
+    accumulated_psd[0] += current_power_val;
+    
+    // Bins 1 a (FFT_SIZE / 2) - 1
+    for (int k = 1; k < FFT_SIZE / 2; k++) {
+        float32_t real_part = fft_output_f32[2*k];
+        float32_t imag_part = fft_output_f32[2*k+1];
+        current_power_val = (real_part * real_part) + (imag_part * imag_part);
+        accumulated_psd[k] += current_power_val;
+    }
+    
+    bartlett_frame_count++;
+}
+
+// Función para procesar periodograma con ventana seleccionada
+void process_periodogram_window(int16_t* pcm_buffer) {
+    // Aplicar la ventana seleccionada y procesamiento completo
+    for (int i = 0; i < FFT_SIZE; i++) {
+        float32_t sample = (float32_t)pcm_buffer[i];
+        
+        // Aplicar todos los filtros de procesamiento
+        sample = process_sample(sample);
+        
+        // Aplicar ventana seleccionada
+        switch(PERIODOGRAM_WINDOW_TYPE) {
+            case 0: // Ventana rectangular (sin ventana)
+                fft_input_f32[i] = sample;
+                break;
+            case 1: // Ventana Hann
+                fft_input_f32[i] = sample * hann_window[i];
+                break;
+            case 2: // Ventana Hamming
+                fft_input_f32[i] = sample * hamming_window[i];
+                break;
+            default: // Por defecto usar rectangular
+                fft_input_f32[i] = sample;
+                break;
+        }
+    }
+    
+    // Calcular RFFT
+    arm_rfft_fast_f32(&fft_instance, fft_input_f32, fft_output_f32, 0);
+    
+    float32_t current_power_val;
+    
+    // Bin 0 (DC)
+    current_power_val = fft_output_f32[0] * fft_output_f32[0];
+    periodogram_psd[0] = current_power_val;
+    
+    // Bins 1 a (FFT_SIZE / 2) - 1
+    for (int k = 1; k < FFT_SIZE / 2; k++) {
+        float32_t real_part = fft_output_f32[2*k];
+        float32_t imag_part = fft_output_f32[2*k+1];
+        current_power_val = (real_part * real_part) + (imag_part * imag_part);
+        periodogram_psd[k] = current_power_val;
+    }
+}
+
+// Función para agregar nuevas muestras al buffer circular
+void add_samples_to_circular_buffer(int16_t* new_samples, uint16_t num_samples) {
+    for (uint16_t i = 0; i < num_samples; i++) {
+        circular_pcm_buffer[circular_buffer_write_index] = new_samples[i];
+        circular_buffer_write_index = (circular_buffer_write_index + 1) % CIRCULAR_BUFFER_SIZE;
+        
+        if (samples_in_circular_buffer < CIRCULAR_BUFFER_SIZE) {
+            samples_in_circular_buffer++;
+        }
+    }
+}
+
+// Función común para enviar resultados de PSD
+void send_psd_results(uint32_t num_averages) {
+    int uart_len = 0;
+    float32_t avg_power, db_val;
+
+    // Enviar SOF
+    uart_len = sprintf(uart_tx_buffer, "SOF\r\n");
+    HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
+    uart_len = 0;
+
+    for (int k = 0; k < FFT_SIZE / 2; k++) {
+        avg_power = accumulated_psd[k] / num_averages;
+
+        if (avg_power < EPSILON) {
+            db_val = DB_FLOOR;
+        } else {
+            db_val = 10.0f * log10f(avg_power);
+            if (db_val < DB_FLOOR) {
+                db_val = DB_FLOOR;
+            }
+        }
+        uart_len += sprintf(uart_tx_buffer + uart_len, "%.2f\r\n", db_val);
+
+        if (uart_len > (UART_BUFFER_SIZE - 20) || k == (FFT_SIZE / 2) - 1) {
+            if (uart_len > 0) {
+                HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
+                uart_len = 0;
+            }
+        }
+    }
+    if (uart_len > 0) { // Enviar cualquier remanente
+        HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
+    }
+
+    // Resetear acumuladores
+    memset(accumulated_psd, 0, sizeof(accumulated_psd));
+}
+
+// Función específica para enviar resultados del periodograma (sin promediado)
+void send_periodogram_results(void) {
+    int uart_len = 0;
+    float32_t db_val;
+
+    // Enviar SOF
+    uart_len = sprintf(uart_tx_buffer, "SOF\r\n");
+    HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
+    uart_len = 0;
+
+    for (int k = 0; k < FFT_SIZE / 2; k++) {
+        if (periodogram_psd[k] < EPSILON) {
+            db_val = DB_FLOOR;
+        } else {
+            db_val = 10.0f * log10f(periodogram_psd[k]);
+            if (db_val < DB_FLOOR) {
+                db_val = DB_FLOOR;
+            }
+        }
+        uart_len += sprintf(uart_tx_buffer + uart_len, "%.2f\r\n", db_val);
+
+        if (uart_len > (UART_BUFFER_SIZE - 20) || k == (FFT_SIZE / 2) - 1) {
+            if (uart_len > 0) {
+                HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
+                uart_len = 0;
+            }
+        }
+    }
+    if (uart_len > 0) { // Enviar cualquier remanente
+        HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
+    }
+}
+
+// Función para alternar entre métodos PSD
+void toggle_psd_method(void) {
+    current_psd_method = (current_psd_method + 1) % 3; // Ciclar entre 0, 1, 2
+    method_change_flag = 1;
+}
+
+// Función para resetear variables según el método actual
+void reset_psd_variables(void) {
+    // Limpiar acumuladores comunes
+    memset(accumulated_psd, 0, sizeof(accumulated_psd));
+    memset(periodogram_psd, 0, sizeof(periodogram_psd));
+    
+    // Resetear todos los filtros de procesamiento
+#if ENABLE_DC_FILTER
+    reset_dc_filter();
+#endif
+
+#if ENABLE_HPF_FILTER
+    reset_hpf_filter();
+#endif
+
+#if ENABLE_PREEMPHASIS
+    reset_preemphasis();
+#endif
+
+#if ENABLE_AGC
+    reset_agc();
+#endif
+
+#if ENABLE_NOTCH_FILTER
+    reset_notch_filter();
+#endif
+    
+    // Resetear variables específicas según el método
+    switch(current_psd_method) {
+        case WELCH:
+            memset(circular_pcm_buffer, 0, sizeof(circular_pcm_buffer));
+            welch_frame_count = 0;
+            circular_buffer_write_index = 0;
+            samples_in_circular_buffer = 0;
+            break;
+            
+        case BARTLETT:
+            bartlett_frame_count = 0;
+            break;
+            
+        case PERIODOGRAM:
+            // No necesita reseteo especial
+            break;
+    }
+    
+    // Enviar notificación del cambio de método por UART
+    const char* method_names[] = {"WELCH", "BARTLETT", "PERIODOGRAM"};
+    int uart_len = sprintf(uart_tx_buffer, "METHOD_CHANGED:%s\r\n", method_names[current_psd_method]);
+    HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
 }
 /* USER CODE END 0 */
 
@@ -187,18 +711,59 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   	  init_hann_window();
+  	  init_hamming_window();
 
     // Inicializar FFT
     if (arm_rfft_fast_init_f32(&fft_instance, FFT_SIZE) != ARM_MATH_SUCCESS) {
         Error_Handler();
     }
-    memset(accumulated_psd, 0, sizeof(accumulated_psd)); // Inicializar acumulador a cero
-    welch_frame_count = 0;
+    
+    // Inicializar filtros de procesamiento
+    int uart_len = 0;
+#if ENABLE_HPF_FILTER
+    init_hpf_filter();
+    uart_len = sprintf(uart_tx_buffer, "HPF inicializado: fc=%.1f Hz, orden=%d\r\n", HPF_CUTOFF_HZ, HPF_ORDER);
+    HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
+#endif
+
+#if ENABLE_NOTCH_FILTER
+    init_notch_filter();
+    uart_len = sprintf(uart_tx_buffer, "Filtro Notch inicializado: fc=%.1f Hz, Q=%.1f\r\n", NOTCH_FREQ_HZ, NOTCH_Q_FACTOR);
+    HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
+#endif
+    
+    // Inicializar variables comunes
+    memset(accumulated_psd, 0, sizeof(accumulated_psd));
+    memset(periodogram_psd, 0, sizeof(periodogram_psd));
+    
+    // Inicializar según el método seleccionado
+    switch(current_psd_method) {
+        case WELCH:
+            memset(circular_pcm_buffer, 0, sizeof(circular_pcm_buffer));
+            welch_frame_count = 0;
+            circular_buffer_write_index = 0;
+            samples_in_circular_buffer = 0;
+            break;
+            
+        case BARTLETT:
+            bartlett_frame_count = 0;
+            break;
+            
+        case PERIODOGRAM:
+            // No necesita inicialización especial
+            break;
+    }
+    
     // Iniciar DMA I2S2 para PDM
     if (HAL_I2S_Receive_DMA(&hi2s2, (uint16_t *)pdm_raw_buffer, PDM_RAW_INPUT_FFT_FRAME_SIZE_UINT16 * 2) != HAL_OK) {
       Error_Handler();
     }
     pdm_input_buffer_idx = 2; // Ningún buffer PDM listo
+    
+    // Enviar mensaje inicial del método activo
+    const char* method_names[] = {"WELCH", "BARTLETT", "PERIODOGRAM"};
+    uart_len = sprintf(uart_tx_buffer, "INITIAL_METHOD:%s\r\n", method_names[current_psd_method]);
+    HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
 
 
   /* USER CODE END 2 */
@@ -207,6 +772,12 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  // Verificar si se ha solicitado un cambio de método
+	  if (method_change_flag) {
+		  method_change_flag = 0;
+		  reset_psd_variables();
+	  }
+	  	
 	  if (pdm_input_buffer_idx != 2) { // Un buffer PDM (un frame FFT) está listo
 	        uint16_t* current_pdm_input_half_ptr;
 
@@ -229,64 +800,56 @@ int main(void)
 	          pcm_mono_buffer_offset += PDM_SAMPLES_PER_PDM_LIB_CALL;
 	        }
 
-	        // Preparar datos para FFT: Convertir int16_t PCM a float32_t y aplicar ventana
-	        for (int i = 0; i < FFT_SIZE; i++) {
-	            fft_input_f32[i] = (float32_t)pcm_mono_fft_input_buffer[i] * hann_window[i]; // Aplicar ventana
-	        }
-
-	        // Calcular RFFT
-	        arm_rfft_fast_f32(&fft_instance, fft_input_f32, fft_output_f32, 0);
-
-	        float32_t current_power_val;
-
-	        // Bin 0 (DC)
-	        current_power_val = fft_output_f32[0] * fft_output_f32[0];
-	        accumulated_psd[0] += current_power_val;
-	        // Bins 1 a (FFT_SIZE / 2) - 1
-	        for (int k = 1; k < FFT_SIZE / 2; k++) {
-	            float32_t real_part = fft_output_f32[2*k];
-	            float32_t imag_part = fft_output_f32[2*k+1];
-	            current_power_val = (real_part * real_part) + (imag_part * imag_part);
-	            accumulated_psd[k] += current_power_val;
-	        }
-	        welch_frame_count++;
-	        if (welch_frame_count >= WELCH_NUM_AVERAGES) {
-	            int uart_len = 0;
-	            float32_t avg_power, db_val;
-
-	            // Enviar SOF
-	            uart_len = sprintf(uart_tx_buffer, "SOF\r\n");
-	            HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
-	            uart_len = 0;
-
-	            for (int k = 0; k < FFT_SIZE / 2; k++) {
-	                avg_power = accumulated_psd[k] / WELCH_NUM_AVERAGES;
-
-	                if (avg_power < EPSILON) {
-	                    db_val = DB_FLOOR;
-	                } else {
-	                    db_val = 10.0f * log10f(avg_power);
-	                    if (db_val < DB_FLOOR) {
-	                        db_val = DB_FLOOR;
+	        // Procesar según el método seleccionado dinámicamente
+	        switch(current_psd_method) {
+	            case WELCH: {
+	                // Agregar las nuevas muestras al buffer circular
+	                add_samples_to_circular_buffer(pcm_mono_fft_input_buffer, PCM_MONO_SAMPLES_PER_FFT_FRAME);
+	                
+	                // Procesar ventanas con overlap si tenemos suficientes muestras
+	                if (samples_in_circular_buffer >= FFT_SIZE) {
+	                    // Verificar si podemos procesar una nueva ventana (hop_size muestras desde la última)
+	                    static uint16_t samples_since_last_window = 0;
+	                    samples_since_last_window += PCM_MONO_SAMPLES_PER_FFT_FRAME;
+	                    
+	                    if (samples_since_last_window >= WELCH_HOP_SIZE) {
+	                        process_welch_window();
+	                        samples_since_last_window -= WELCH_HOP_SIZE;
+	                        
+	                        // Enviar resultados cuando tengamos suficientes promedios
+	                        if (welch_frame_count >= WELCH_NUM_AVERAGES) {
+	                            send_psd_results(WELCH_NUM_AVERAGES);
+	                            welch_frame_count = 0;
+	                        }
 	                    }
 	                }
-	                uart_len += sprintf(uart_tx_buffer + uart_len, "%.2f\r\n", db_val);
-
-	                if (uart_len > (UART_BUFFER_SIZE - 20) || k == (FFT_SIZE / 2) - 1) {
-	                    if (uart_len > 0) {
-	                        HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
-	                        uart_len = 0;
-	                    }
+	                break;
+	            }
+	            
+	            case BARTLETT: {
+	                // Procesar directamente la ventana completa (sin overlap)
+	                process_bartlett_window(pcm_mono_fft_input_buffer);
+	                
+	                // Enviar resultados cuando tengamos suficientes promedios
+	                if (bartlett_frame_count >= BARTLETT_NUM_AVERAGES) {
+	                    send_psd_results(BARTLETT_NUM_AVERAGES);
+	                    bartlett_frame_count = 0;
 	                }
+	                break;
 	            }
-	            if (uart_len > 0) { // Enviar cualquier remanente
-	                HAL_UART_Transmit(&huart2, (uint8_t*)uart_tx_buffer, uart_len, HAL_MAX_DELAY);
+	            
+	            case PERIODOGRAM: {
+	                // Procesar directamente la ventana con la ventana seleccionada
+	                process_periodogram_window(pcm_mono_fft_input_buffer);
+	                
+	                // Enviar resultados inmediatamente (sin promediado)
+	                send_periodogram_results();
+	                break;
 	            }
-
-	            memset(accumulated_psd, 0, sizeof(accumulated_psd));
-	            welch_frame_count = 0;
-
-	            //HAL_Delay(100);
+	            
+	            default:
+	                // No hacer nada si el método no es válido
+	                break;
 	        }
 
 	        pdm_input_buffer_idx = 2;
@@ -361,7 +924,25 @@ void HAL_I2S_RxCpltCallback(I2S_HandleTypeDef *hi2s)
   }
 }
 
+// Callback de interrupción GPIO para cambio de método PSD
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  uint32_t current_time = HAL_GetTick();
+  
+  // Debounce del botón (evitar múltiples activaciones)
+  if (GPIO_Pin == METHOD_SWITCH_GPIO_PIN && 
+      (current_time - button_debounce_time) > 200) { // 200ms de debounce
+    
+    button_debounce_time = current_time;
+    toggle_psd_method();
+  }
+}
 
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+{
+  // Callback para transmisión UART completa (si es necesario)
+}
 /* USER CODE END 4 */
 
 /**
