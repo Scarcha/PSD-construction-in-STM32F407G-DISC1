@@ -67,6 +67,7 @@ enum PSD_METHOD{
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+
 #define PCM_SAMPLING_FREQ       32000U  // Frecuencia de muestreo PCM (Hz)
 #define AUDIO_FREQ_PDM_HAL      64000U  // Para I2S2_BCLK ~2.048MHz -> 32kHz PCM con OSR 64
 #define CS43L22_ADDRESS         0x94U   // Dirección I2C del CS43L22
@@ -134,8 +135,20 @@ enum PSD_METHOD{
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
+arm_rfft_instance_q15 S_rfft_q15;
+arm_rfft_instance_q31 S_rfft_q31;
+uint32_t periodogram_cycles = 0;
+uint32_t bartlett_cycles = 0;
+uint32_t welch_cycles = 0;
+uint32_t fft_float_cycles = 0;
+uint32_t fft_q15_cycles = 0;
+uint32_t fft_q31_cycles = 0;
 extern PDM_Filter_Handler_t PDM1_filter_handler;
 extern PDM_Filter_Config_t PDM1_filter_config;
+q15_t RFFT_Input_Q15[FFT_SIZE];
+q15_t RFFT_Output_Q15[FFT_SIZE];
+q31_t RFFT_Input_Q31[FFT_SIZE];
+q31_t RFFT_Output_Q31[FFT_SIZE];
 
 // Buffers Ping-Pong para la entrada PDM
 uint16_t pdm_raw_buffer[2][PDM_RAW_INPUT_FFT_FRAME_SIZE_UINT16];
@@ -433,12 +446,18 @@ void process_welch_window(void) {
         
         fft_input_f32[i] = sample * hann_window[i];
     }
-    
-    // Calcular RFFT
-    arm_rfft_fast_f32(&fft_instance, fft_input_f32, fft_output_f32, 0);
-    
+
     float32_t current_power_val;
-    
+    uint32_t start_fft_time;
+	uint32_t end_fft_time;
+
+    // Calcular RFFT
+    start_fft_time = DWT->CYCCNT;
+    arm_rfft_fast_f32(&fft_instance, fft_input_f32, fft_output_f32, 0);
+    end_fft_time = DWT->CYCCNT;
+    fft_float_cycles = end_fft_time - start_fft_time;
+
+
     // Bin 0 (DC)
     current_power_val = fft_output_f32[0] * fft_output_f32[0];
     accumulated_psd[0] += current_power_val;
@@ -710,8 +729,14 @@ int main(void)
   MX_SPI1_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  	  init_hann_window();
-  	  init_hamming_window();
+  // Enable DWT_CYCCNT for cycle counting
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk; // Enable Trace Exception (TRCENA) bit in DEMCR register
+    DWT->CYCCNT = 0;                                // Reset the cycle counter
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;            // Enable the cycle counter (CYCCNTENA) bit in DWT_CTRL register
+    arm_rfft_init_q15(&S_rfft_q15, FFT_SIZE, 0, 1);
+    arm_rfft_init_q31(&S_rfft_q31, FFT_SIZE, 0, 1);
+  	init_hann_window();
+  	init_hamming_window();
 
     // Inicializar FFT
     if (arm_rfft_fast_init_f32(&fft_instance, FFT_SIZE) != ARM_MATH_SUCCESS) {
@@ -772,6 +797,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+      uint32_t start_cycles, end_cycles;
 	  // Verificar si se ha solicitado un cambio de método
 	  if (method_change_flag) {
 		  method_change_flag = 0;
@@ -803,6 +829,9 @@ int main(void)
 	        // Procesar según el método seleccionado dinámicamente
 	        switch(current_psd_method) {
 	            case WELCH: {
+                    if (welch_frame_count == 0) {
+                        start_cycles = DWT->CYCCNT;
+                    }
 	                // Agregar las nuevas muestras al buffer circular
 	                add_samples_to_circular_buffer(pcm_mono_fft_input_buffer, PCM_MONO_SAMPLES_PER_FFT_FRAME);
 	                
@@ -820,6 +849,8 @@ int main(void)
 	                        if (welch_frame_count >= WELCH_NUM_AVERAGES) {
 	                            send_psd_results(WELCH_NUM_AVERAGES);
 	                            welch_frame_count = 0;
+                                end_cycles = DWT->CYCCNT;
+                                welch_cycles = end_cycles - start_cycles;
 	                        }
 	                    }
 	                }
@@ -827,6 +858,9 @@ int main(void)
 	            }
 	            
 	            case BARTLETT: {
+                    if (bartlett_frame_count == 0) { // Assuming bartlett_frame_count is reset to 0 after sending
+                        start_cycles = DWT->CYCCNT;
+                    }
 	                // Procesar directamente la ventana completa (sin overlap)
 	                process_bartlett_window(pcm_mono_fft_input_buffer);
 	                
@@ -834,16 +868,21 @@ int main(void)
 	                if (bartlett_frame_count >= BARTLETT_NUM_AVERAGES) {
 	                    send_psd_results(BARTLETT_NUM_AVERAGES);
 	                    bartlett_frame_count = 0;
+                        end_cycles = DWT->CYCCNT;
+                        bartlett_cycles = end_cycles - start_cycles;
 	                }
 	                break;
 	            }
 	            
 	            case PERIODOGRAM: {
+                    start_cycles = DWT->CYCCNT;
 	                // Procesar directamente la ventana con la ventana seleccionada
 	                process_periodogram_window(pcm_mono_fft_input_buffer);
-	                
 	                // Enviar resultados inmediatamente (sin promediado)
 	                send_periodogram_results();
+                    end_cycles = DWT->CYCCNT;
+                    periodogram_cycles = end_cycles - start_cycles;
+                    
 	                break;
 	            }
 	            

@@ -3,6 +3,7 @@
 	<item key="hasShownOverlayPopupBefore" value="true"/>
 	<item key="replaceBarOpen" value="false"/>
 	<list key="searchhistory">
+		<item value="arm_cfft_f32"/>
 		<item value="pcm_stereo_output_buffer"/>
 		<item value="pcm_output_buffer_ready_for_filling_idx"/>
 		<item value="next_iteration_label"/>
@@ -17,7 +18,6 @@
 		<item value="MX_PDM2PCM_Process"/>
 		<item value="PDM"/>
 		<item value="MEDIA"/>
-		<item value="LED"/>
 	</list>
 	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
 		<item key="selection" value=""/>

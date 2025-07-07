@@ -2,7 +2,26 @@ import serial
 import time
 import numpy as np
 import pyqtgraph as pg
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
+import datetime
+import os
+
+# Importar los exportadores disponibles de pyqtgraph
+try:
+    from pyqtgraph.exporters import ImageExporter, SVGExporter
+    EXPORTERS_AVAILABLE = ['png', 'svg']
+    try:
+        from pyqtgraph.exporters import PDFExporter
+        EXPORTERS_AVAILABLE.append('pdf')
+    except ImportError:
+        PDFExporter = None
+        print("⚠️  PDFExporter no disponible en esta versión de pyqtgraph")
+except ImportError:
+    print("⚠️  Exportadores no disponibles en esta versión de pyqtgraph")
+    ImageExporter = None
+    SVGExporter = None
+    PDFExporter = None
+    EXPORTERS_AVAILABLE = []
 
 # Configuración del puerto serial
 SERIAL_PORT = 'COM3'
@@ -20,11 +39,106 @@ current_method = "WELCH"  # Método por defecto
 # Opción para excluir el bin DC (bin 0) de la visualización
 EXCLUDE_DC_BIN = False  # Cambiar a True para excluir el bin DC
 
+def save_plot_image(format='png'):
+    """
+    Guardar imagen del plot en formato raster (PNG) o vectorial (SVG, PDF).
+    Args:
+        format (str): El formato de archivo deseado ('png', 'svg', 'pdf').
+    """
+    try:
+        # Verificar si el formato está disponible
+        if format not in EXPORTERS_AVAILABLE:
+            print(f"❌ Formato {format.upper()} no disponible en esta versión de pyqtgraph")
+            print(f"Formatos disponibles: {', '.join(EXPORTERS_AVAILABLE).upper()}")
+            return None
+        
+        # Crear directorio de imágenes si no existe
+        img_dir = "imagenes_psd"
+        if not os.path.exists(img_dir):
+            os.makedirs(img_dir)
+        
+        # Generar nombre de archivo con timestamp
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"{img_dir}/PSD_{current_method}_{timestamp}.{format}"
+        
+        # Guardar configuración original (solo relevante para PNG con fondo blanco)
+        original_pen = curve.opts['pen']
+        original_bg = win.getBackground()
+        
+        if format == 'png' and ImageExporter is not None:
+            # Configurar para fondo blanco para la imagen PNG
+            win.setBackground('white')
+            # Cambiar color de la curva para que sea visible en fondo blanco
+            colors_for_white_bg = {
+                'WELCH': pg.mkPen(color='b', width=3),        # Azul más grueso
+                'BARTLETT': pg.mkPen(color='r', width=3),     # Rojo más grueso
+                'PERIODOGRAM': pg.mkPen(color='darkgreen', width=3)  # Verde oscuro más grueso
+            }
+            curve.setPen(colors_for_white_bg.get(current_method, pg.mkPen(color='k', width=3)))
+            
+            # Exportar como PNG (raster)
+            exporter = ImageExporter(plot.plotItem)
+            exporter.parameters()['width'] = 1200
+            exporter.parameters()['height'] = 800
+            exporter.export(filename)
+            
+            # Restaurar configuración original después de exportar PNG
+            curve.setPen(original_pen)
+            win.setBackground(original_bg)
+            
+        elif format == 'svg' and SVGExporter is not None:
+            # Exportar como SVG (vectorial)
+            exporter = SVGExporter(plot.plotItem)
+            exporter.export(filename)
+            
+        elif format == 'pdf' and PDFExporter is not None:
+            # Exportar como PDF (vectorial)
+            exporter = PDFExporter(plot.plotItem)
+            exporter.export(filename)
+            
+        else:
+            print(f"❌ Exportador para formato {format.upper()} no disponible")
+            return None
+
+        print(f"✅ Gráfico guardado: {filename}")
+        return filename
+        
+    except Exception as e:
+        print(f"❌ Error al guardar gráfico como {format}: {e}")
+        # Intentar restaurar configuración en caso de error, solo si se modificó para PNG
+        if format == 'png':
+            try:
+                curve.setPen(original_pen)
+                win.setBackground(original_bg)
+            except:
+                pass
+        return None
+
+def keyPressEvent(event):
+    """Manejar eventos de teclado"""
+    if event.key() == QtCore.Qt.Key_S:
+        save_plot_image(format='png') # Guarda como PNG (con fondo blanco)
+    elif event.key() == QtCore.Qt.Key_V:
+        if 'svg' in EXPORTERS_AVAILABLE:
+            save_plot_image(format='svg') # Guarda como SVG (vectorial)
+        else:
+            print("❌ Exportación SVG no disponible")
+    elif event.key() == QtCore.Qt.Key_P:
+        if 'pdf' in EXPORTERS_AVAILABLE:
+            save_plot_image(format='pdf') # Guarda como PDF (vectorial)
+        else:
+            print("❌ Exportación PDF no disponible")
+    elif event.key() == QtCore.Qt.Key_Q:
+        app.quit()
+
 # Configurar ventana
 app = QtWidgets.QApplication([])
 win = pg.GraphicsLayoutWidget(title="PSD en Tiempo Real - Métodos Dinámicos")
 win.show()
 win.setWindowTitle('PSD Viewer - Welch/Bartlett/Periodogram')
+
+# Conectar eventos de teclado
+win.keyPressEvent = keyPressEvent
 
 # Configurar plot principal
 plot = win.addPlot(title=f"Método Activo: {current_method}")
@@ -36,20 +150,9 @@ plot.setYRange(DB_FLOOR - 10, 100)
 # Agregar grid para mejor visualización
 plot.showGrid(x=True, y=True, alpha=0.3)
 
-# Configurar leyenda de información
-info_label = pg.LabelItem(justify='left')
-win.addItem(info_label, row=1, col=0)
-
-coord_label = pg.LabelItem(justify='right')
-win.addItem(coord_label, row=2, col=0)
-
 def mouseMoved(evt):
-    pos = evt[0]
-    if plot.sceneBoundingRect().contains(pos):
-        mouse_point = plot.vb.mapSceneToView(pos)
-        x = mouse_point.x()
-        y = mouse_point.y()
-        coord_label.setText(f"<span style='font-size: 12pt'>f = {x:.1f} Hz,&nbsp;&nbsp; Mag = {y:.1f} dB</span>")
+    # Función eliminada - no hay etiquetas de coordenadas
+    pass
 
 def update_method_info(method_name):
     """Actualizar información del método activo"""
@@ -61,10 +164,11 @@ def update_method_info(method_name):
     plot.setTitle(f"Método Activo: {method_name} ({dc_status})")
     
     # Actualizar color de la curva según el método
+    # Estos colores se usarán para la visualización en pantalla y exportaciones vectoriales
     colors = {
-        'WELCH': 'y',        # Amarillo
-        'BARTLETT': 'c',     # Cyan
-        'PERIODOGRAM': 'm'   # Magenta
+        'WELCH': 'b',        # Azul
+        'BARTLETT': 'r',     # Rojo
+        'PERIODOGRAM': 'darkgreen'   # Verde oscuro
     }
     curve.setPen(colors.get(method_name, 'w'), width=2)
     
@@ -75,21 +179,12 @@ def update_method_info(method_name):
         'PERIODOGRAM': 'Una ventana, Sin promediado, Ventana configurable'
     }
     
-    info_text = f"<span style='font-size: 12pt; color: white;'>Método: {method_name}<br>"
-    info_text += f"Descripción: {method_descriptions.get(method_name, 'Desconocido')}<br>"
-    info_text += f"<br><b>Filtros STM32 (HPF + Notch CORREGIDOS):</b><br>"
-    info_text += f"• Filtro DC: DESHABILITADO<br>"
-    info_text += f"• <b>Filtro HPF: HABILITADO (200 Hz, 2º orden)</b><br>"
-    info_text += f"• Pre-énfasis: DESHABILITADO<br>"
-    info_text += f"• AGC: DESHABILITADO<br>"
-    info_text += f"• <b>Filtro Notch 50 Hz: HABILITADO (Q=30)</b><br>"
-    info_text += f"<br><b>Estado:</b> Filtros corregidos y operativos<br>"
-    info_text += f"Visualización DC: {'Excluida' if EXCLUDE_DC_BIN else 'INCLUIDA'}</span>"
-    info_label.setText(info_text)
-    
+    # No hay etiquetas de información en el gráfico - información solo en consola
     print(f"Método cambiado a: {method_name}")
+    print(f"Descripción: {method_descriptions.get(method_name, 'Desconocido')}")
 
-proxy = pg.SignalProxy(plot.scene().sigMouseMoved, rateLimit=60, slot=mouseMoved)
+# Eliminar la conexión del mouse ya que no hay etiquetas de coordenadas
+# proxy = pg.SignalProxy(plot.scene().sigMouseMoved, rateLimit=60, slot=mouseMoved)
 
 try:
     ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
@@ -130,7 +225,6 @@ try:
                     
                     # ANÁLISIS DEL BIN DC (bin 0)
                     dc_power = data_values[0]
-                    print(f"Potencia DC (bin 0): {dc_power:.2f} dB")
                     
                     if EXCLUDE_DC_BIN:
                         # Excluir el bin DC de la visualización
@@ -146,7 +240,7 @@ try:
                             max_val = np.max(display_data)
                             min_val = max(np.min(display_data), DB_FLOOR)
                             plot.setYRange(min_val - 5, max_val + 10)
-                    
+                        
                     else:
                         # Mostrar todo incluyendo DC
                         curve.setData(freqs, data_values)
@@ -164,7 +258,7 @@ try:
                             else:
                                 # Incluir DC en la escala si no es extremo
                                 plot.setYRange(min(min_val, dc_power) - 5, max(max_val, dc_power) + 10)
-                    
+                        
                     buffer = []
             except ValueError:
                 # Ignorar líneas que no son números
@@ -176,21 +270,20 @@ try:
 
     print("\n=== CONTROLES ===")
     print("- Presiona el botón del STM32 para cambiar métodos")
-    print("- Mueve el mouse sobre el gráfico para ver coordenadas")
-    print("- Cierra la ventana para salir")
-    print("\n=== CONFIGURACIÓN ACTUAL (FILTROS CORREGIDOS) ===")
-    print(f"- Visualización bin DC: {'EXCLUIDA' if EXCLUDE_DC_BIN else 'INCLUIDA (VISIBLE)'}")
-    print("- FILTROS STM32 (CORREGIDOS):")
-    print("  * Filtro DC: DESHABILITADO")
-    print("  * HPF CORREGIDO: HABILITADO (fc=200 Hz, 2º orden, -40 dB/década)") 
-    print("  * Pre-énfasis: DESHABILITADO")
-    print("  * AGC: DESHABILITADO")
-    print("  * FILTRO NOTCH CORREGIDO: HABILITADO (fc=50 Hz, Q=30)")
-    print("- OBJETIVO:")
-    print("  * HPF: Eliminar frecuencias < 200 Hz")
-    print("  * NOTCH: Eliminar interferencia de red (50 Hz)")
-    print("  * Filtros con implementación matemática correcta")
-    print("  * Configuración coherente y estable")
+    if 'png' in EXPORTERS_AVAILABLE:
+        print("- Presiona 'S' para guardar imagen (PNG, fondo blanco)")
+    if 'svg' in EXPORTERS_AVAILABLE:
+        print("- Presiona 'V' para guardar gráfico (SVG, vectorial)")
+    if 'pdf' in EXPORTERS_AVAILABLE:
+        print("- Presiona 'P' para guardar gráfico (PDF, vectorial)")
+    if not EXPORTERS_AVAILABLE:
+        print("- ⚠️  No hay exportadores disponibles en esta versión de pyqtgraph")
+    print("- Presiona 'Q' para salir")
+    print(f"\n=== EXPORTADORES DISPONIBLES: {', '.join(EXPORTERS_AVAILABLE).upper()} ===")
+    print("\n=== CONFIGURACIÓN ACTUAL ===")
+    print(f"- Visualización bin DC: {'EXCLUIDA' if EXCLUDE_DC_BIN else 'INCLUIDA'}")
+    print("- Procesamiento: HPF 200Hz + Notch 50Hz")
+    print("- Métodos disponibles: Welch, Bartlett, Periodogram")
     print("=============================\n")
 
     app.exec_()
@@ -207,4 +300,3 @@ finally:
     if 'ser' in locals() and ser.isOpen():
         ser.close()
         print("Puerto serial cerrado.")
-    print("¡Hasta luego!")

@@ -1,0 +1,19 @@
+# Requisitos para el Sistema de Visualización PSD
+# Instalar con: pip install -r requirements.txt
+
+# Interfaz gráfica y visualización
+PyQt5>=5.15.0
+pyqtgraph>=0.12.0
+
+# Comunicación serial
+pyserial>=3.5
+
+# Procesamiento numérico
+numpy>=1.21.0
+
+# Utilidades del sistema
+datetime
+
+# Opcional: Para análisis adicional
+# matplotlib>=3.5.0
+# scipy>=1.7.0
